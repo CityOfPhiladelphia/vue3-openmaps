@@ -17,7 +17,7 @@ export const licensesAndInspectionsBoardOfBuildingStandardsAppeals = {
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 6,
+      "circle-radius": 5.68,
       "circle-opacity": 1,
       "circle-stroke-color": "#000000",
       "circle-stroke-width": 1
@@ -72,11 +72,19 @@ export const licensesAndInspectionsBoardOfBuildingStandardsAppeals = {
           },
           {
               "field": "createddate",
-              "label": "Created Date"
+              "label": "Created Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "completeddate",
-              "label": "Completed Date"
+              "label": "Completed Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "relatedpermit",
@@ -104,7 +112,11 @@ export const licensesAndInspectionsBoardOfBuildingStandardsAppeals = {
           },
           {
               "field": "scheduleddate",
-              "label": "Scheduled Date"
+              "label": "Scheduled Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "decision",
@@ -116,7 +128,11 @@ export const licensesAndInspectionsBoardOfBuildingStandardsAppeals = {
           },
           {
               "field": "decisiondate",
-              "label": "Decision Date"
+              "label": "Decision Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           }
       ]
   },

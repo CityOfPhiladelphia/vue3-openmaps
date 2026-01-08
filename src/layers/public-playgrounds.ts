@@ -16,7 +16,7 @@ export const publicPlaygrounds = {
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

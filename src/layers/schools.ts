@@ -31,7 +31,7 @@ export const schools = {
           "#9e559c",
           "#aaaaaa"
       ],
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -55,6 +55,11 @@ export const schools = {
           "type": "circle",
           "color": "#9e559c",
           "label": "Private"
+      },
+      {
+          "type": "circle",
+          "color": "#aaaaaa",
+          "label": "Other"
       }
   ],
 

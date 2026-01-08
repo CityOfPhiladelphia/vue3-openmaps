@@ -13,11 +13,12 @@ export const businessPermitsSigns = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/PERMITS/FeatureServer/0",
   where: "(permitissuedate BETWEEN CURRENT_TIMESTAMP - 730 AND CURRENT_TIMESTAMP) AND (permittype = 'BP_SIGN' OR typeofwork = 'SIGN')",
+  minZoom: 14.77,
   opacity: 1,
 
   paint: {
       "circle-color": "#ffaa00",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -54,7 +55,11 @@ export const businessPermitsSigns = {
           },
           {
               "field": "permitissuedate",
-              "label": "Issue Date"
+              "label": "Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

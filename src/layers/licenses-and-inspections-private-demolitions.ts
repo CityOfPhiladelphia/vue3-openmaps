@@ -13,11 +13,12 @@ export const licensesAndInspectionsPrivateDemolitions = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/DEMOLITIONS/FeatureServer/0",
   where: "(city_demo = 'NO') AND (completed_date BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP)",
+  minZoom: 14.77,
   opacity: 1,
 
   paint: {
       "circle-color": "#73dfff",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -66,11 +67,19 @@ export const licensesAndInspectionsPrivateDemolitions = {
           },
           {
               "field": "start_date",
-              "label": "Start Date"
+              "label": "Start Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "completed_date",
-              "label": "Completion Date"
+              "label": "Completion Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",
@@ -78,7 +87,11 @@ export const licensesAndInspectionsPrivateDemolitions = {
           },
           {
               "field": "mostrecentinsp",
-              "label": "Most Recent Inspection"
+              "label": "Most Recent Inspection",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "applicantname",

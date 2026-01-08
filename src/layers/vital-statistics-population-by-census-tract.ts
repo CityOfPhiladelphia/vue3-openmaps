@@ -40,39 +40,75 @@ export const vitalStatisticsPopulationByCensusTract = {
       "fields": [
           {
               "field": "count_all_races_ethnicities",
-              "label": "Population count - all races and ethnicities"
+              "label": "Population count - all races and ethnicities",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "count_white_nh",
-              "label": "Count of Non-Hispanic White"
+              "label": "Count of Non-Hispanic White",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "count_black_nh",
-              "label": "Count of Non-Hispanic Black"
+              "label": "Count of Non-Hispanic Black",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "count_asian_pi_nh",
-              "label": "Count of Non-Hispanic Asian and Pacific Islander"
+              "label": "Count of Non-Hispanic Asian and Pacific Islander",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "count_hispanic",
-              "label": "Count of Hispanic Population"
+              "label": "Count of Hispanic Population",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "percent_white_nh",
-              "label": "Percent of Population Non-Hispanic White"
+              "label": "Percent of Population Non-Hispanic White",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 2
+              }
           },
           {
               "field": "percent_black_nh",
-              "label": "Percent of Population Non-Hispanic Black"
+              "label": "Percent of Population Non-Hispanic Black",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 2
+              }
           },
           {
               "field": "percent_asian_pi_nh",
-              "label": "Percent of Population Non-Hispanic Asian and Pacific Islander"
+              "label": "Percent of Population Non-Hispanic Asian and Pacific Islander",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           },
           {
               "field": "percent_hispanic",
-              "label": "Percent of Population Hispanic"
+              "label": "Percent of Population Hispanic",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           }
       ]
   },

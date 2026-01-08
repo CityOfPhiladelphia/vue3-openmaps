@@ -16,7 +16,7 @@ export const fireStations = {
 
   paint: {
       "circle-color": "#ff0000",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -33,11 +33,19 @@ export const fireStations = {
       "fields": [
           {
               "field": "eng",
-              "label": "Engine"
+              "label": "Engine",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "lad",
-              "label": "Ladder"
+              "label": "Ladder",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "location",

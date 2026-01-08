@@ -17,7 +17,7 @@ export const iceRinks = {
 
   paint: {
       "circle-color": "#73dfff",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

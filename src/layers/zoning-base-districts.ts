@@ -300,6 +300,11 @@ export const zoningBaseDistricts = {
           "type": "fill",
           "color": "#8acc66",
           "label": "SPSTA"
+      },
+      {
+          "type": "fill",
+          "color": "#828282",
+          "label": "Other"
       }
   ],
 
@@ -312,7 +317,11 @@ export const zoningBaseDistricts = {
           },
           {
               "field": "citycor",
-              "label": "CITYCOR"
+              "label": "CITYCOR",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "long_code",
@@ -336,7 +345,10 @@ export const zoningBaseDistricts = {
           },
           {
               "field": "sunset_date",
-              "label": "Sunset Date"
+              "label": "Sunset Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime"
+              }
           },
           {
               "field": "sunsetbillnum",

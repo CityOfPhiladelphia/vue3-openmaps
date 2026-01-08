@@ -13,11 +13,12 @@ export const licensesAndInspectionsCityDemolitions = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/DEMOLITIONS/FeatureServer/0",
   where: "(city_demo = 'YES') AND (completed_date BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP)",
+  minZoom: 14.21,
   opacity: 1,
 
   paint: {
       "circle-color": "#2176d2",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -54,11 +55,19 @@ export const licensesAndInspectionsCityDemolitions = {
           },
           {
               "field": "start_date",
-              "label": "Start Date"
+              "label": "Start Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "completed_date",
-              "label": "Completed Date"
+              "label": "Completed Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

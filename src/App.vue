@@ -1,26 +1,95 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { Map, CircleLayer, FillLayer, LineLayer } from "@phila/phila-ui-map-core";
+import { ref, onMounted } from "vue";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-// Import layer configs
-import { athleticFieldsTracksAndCourts } from "./layers/athletic-fields-tracks-and-courts";
-import { schools } from "./layers/schools";
-import { policeDistricts } from "./layers/police-districts";
-import { bikeNetwork } from "./layers/bike-network";
-import { zoningBaseDistricts } from "./layers/zoning-base-districts";
+import MapPanel from "./components/MapPanel.vue";
+import LayerPanel from "./components/LayerPanel.vue";
 
-// Helper to convert ArcGIS FeatureServer URL to GeoJSON source
-function createEsriSource(url: string, where?: string) {
-  const whereClause = encodeURIComponent(where || "1=1");
-  return {
-    type: "geojson" as const,
-    data: `${url}/query?where=${whereClause}&outFields=*&f=geojson`,
-  };
+// Import layer configs
+import { layers } from "./layers";
+
+// ============================================================================
+// LAYER DEFINITIONS
+// ============================================================================
+// Build layerList from layers array, deriving component type from layer.type
+const layerList = layers.map(config => ({
+  config,
+  component: config.type, // "circle", "fill", or "line"
+}));
+
+// ============================================================================
+// SHARED STATE
+// ============================================================================
+const currentZoom = ref(12);
+const searchQuery = ref("");
+const visibleLayers = ref<Set<string>>(new Set());
+const layerOpacities = ref<Record<string, number>>({});
+const loadingLayers = ref<Set<string>>(new Set());
+const layerErrors = ref<Record<string, string>>({});
+
+// ============================================================================
+// METADATA LOOKUP
+// ============================================================================
+// Maps layer URLs to their metadata page URLs (from Knack)
+const layerMetadata = ref<Record<string, string>>({});
+
+// Normalize URL for matching: remove query params, trailing slashes, and /query suffix
+function normalizeUrl(url: string): string {
+  let normalized = url.split("?")[0] || url; // Remove query params
+  normalized = normalized.replace(/\/query$/, ""); // Remove /query suffix
+  normalized = normalized.replace(/\/$/, ""); // Remove trailing slash
+  return normalized.toLowerCase();
 }
 
-// Layer visibility state
-const visibleLayers = ref<Set<string>>(new Set());
+// Fetch metadata from Carto API and build lookup
+async function fetchMetadata() {
+  try {
+    const apiUrl = "https://phl.carto.com/api/v2/sql?q=" + encodeURIComponent(
+      "select url_text, COALESCE(representation, '') as representation " +
+      "from phl.knack_metadata_reps_endpoints_join " +
+      "WHERE ( format = 'API' OR format = 'GeoService' ) " +
+      "AND url_text IS NOT null"
+    );
+    const response = await fetch(apiUrl);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const lookup: Record<string, string> = {};
+
+    // Build lookup from normalized URL to metadata page
+    for (const row of data.rows || []) {
+      if (row.url_text && row.representation) {
+        const normalizedUrl = normalizeUrl(row.url_text);
+        const metadataUrl = `https://metadata.phila.gov/#home/representationdetails/${row.representation}/`;
+        lookup[normalizedUrl] = metadataUrl;
+      }
+    }
+
+    layerMetadata.value = lookup;
+  } catch (err) {
+    console.error("Error fetching metadata:", err);
+  }
+}
+
+onMounted(() => {
+  fetchMetadata();
+});
+
+// ============================================================================
+// MOBILE PANEL TOGGLE
+// ============================================================================
+const activePanel = ref<"layers" | "map">("map");
+
+function togglePanel() {
+  activePanel.value = activePanel.value === "layers" ? "map" : "layers";
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+function onZoomChange(zoom: number) {
+  currentZoom.value = zoom;
+}
 
 function toggleLayer(layerId: string) {
   if (visibleLayers.value.has(layerId)) {
@@ -28,31 +97,34 @@ function toggleLayer(layerId: string) {
   } else {
     visibleLayers.value.add(layerId);
   }
-  // Trigger reactivity
   visibleLayers.value = new Set(visibleLayers.value);
 }
 
-function isVisible(layerId: string) {
-  return visibleLayers.value.has(layerId);
+function setLayerOpacity(layerId: string, opacity: number) {
+  layerOpacities.value = { ...layerOpacities.value, [layerId]: opacity };
 }
 
-// Layer definitions for the sidebar
-const layerList = [
-  { config: athleticFieldsTracksAndCourts, component: "circle" },
-  { config: schools, component: "circle" },
-  { config: policeDistricts, component: "fill" },
-  { config: bikeNetwork, component: "line" },
-  { config: zoningBaseDistricts, component: "fill" },
-];
+function setLayerLoading(layerId: string, loading: boolean) {
+  if (loading) {
+    loadingLayers.value.add(layerId);
+  } else {
+    loadingLayers.value.delete(layerId);
+  }
+  loadingLayers.value = new Set(loadingLayers.value);
+}
 
-// Pre-compute sources (using where clause from layer config if present)
-const sources = {
-  athleticFields: computed(() => createEsriSource(athleticFieldsTracksAndCourts.url, athleticFieldsTracksAndCourts.where)),
-  schools: computed(() => createEsriSource(schools.url, (schools as any).where)),
-  policeDistricts: computed(() => createEsriSource(policeDistricts.url, (policeDistricts as any).where)),
-  bikeNetwork: computed(() => createEsriSource(bikeNetwork.url, (bikeNetwork as any).where)),
-  zoningBaseDistricts: computed(() => createEsriSource(zoningBaseDistricts.url, (zoningBaseDistricts as any).where)),
-};
+function setLayerError(layerId: string, error: string | null) {
+  if (error) {
+    layerErrors.value = { ...layerErrors.value, [layerId]: error };
+  } else {
+    const { [layerId]: _, ...rest } = layerErrors.value;
+    layerErrors.value = rest;
+  }
+}
+
+function updateSearch(query: string) {
+  searchQuery.value = query;
+}
 </script>
 
 <template>
@@ -62,63 +134,39 @@ const sources = {
     </header>
 
     <div class="app-main">
-      <aside class="left-panel">
-        <div class="layer-list">
-          <label
-            v-for="layer in layerList"
-            :key="layer.config.id"
-            class="layer-checkbox"
-          >
-            <input
-              type="checkbox"
-              :checked="isVisible(layer.config.id)"
-              @change="toggleLayer(layer.config.id)"
-            />
-            <span>{{ layer.config.title }}</span>
-          </label>
-        </div>
-      </aside>
+      <div class="layer-panel-wrapper" :class="{ 'active': activePanel === 'layers' }">
+        <LayerPanel
+          :layer-list="layerList"
+          :visible-layers="visibleLayers"
+          :layer-opacities="layerOpacities"
+          :loading-layers="loadingLayers"
+          :layer-errors="layerErrors"
+          :current-zoom="currentZoom"
+          :search-query="searchQuery"
+          :layer-metadata="layerMetadata"
+          @toggle-layer="toggleLayer"
+          @set-opacity="setLayerOpacity"
+          @update-search="updateSearch"
+        />
+      </div>
 
-      <div class="map-container">
-        <Map>
-          <!-- Circle Layers -->
-          <CircleLayer
-            v-if="isVisible(athleticFieldsTracksAndCourts.id)"
-            :id="athleticFieldsTracksAndCourts.id"
-            :source="sources.athleticFields.value"
-            :paint="athleticFieldsTracksAndCourts.paint"
-          />
-          <CircleLayer
-            v-if="isVisible(schools.id)"
-            :id="schools.id"
-            :source="sources.schools.value"
-            :paint="schools.paint"
-          />
-
-          <!-- Fill Layers -->
-          <FillLayer
-            v-if="isVisible(policeDistricts.id)"
-            :id="policeDistricts.id"
-            :source="sources.policeDistricts.value"
-            :paint="policeDistricts.paint"
-          />
-          <FillLayer
-            v-if="isVisible(zoningBaseDistricts.id)"
-            :id="zoningBaseDistricts.id"
-            :source="sources.zoningBaseDistricts.value"
-            :paint="zoningBaseDistricts.paint"
-          />
-
-          <!-- Line Layers -->
-          <LineLayer
-            v-if="isVisible(bikeNetwork.id)"
-            :id="bikeNetwork.id"
-            :source="sources.bikeNetwork.value"
-            :paint="bikeNetwork.paint"
-          />
-        </Map>
+      <div class="map-panel-wrapper" :class="{ 'active': activePanel === 'map' }">
+        <MapPanel
+          :visible-layers="visibleLayers"
+          :layer-opacities="layerOpacities"
+          :layer-list="layerList"
+          @zoom="onZoomChange"
+          @layer-loading="setLayerLoading"
+          @layer-error="setLayerError"
+        />
       </div>
     </div>
+
+    <!-- Mobile toggle button -->
+    <button class="mobile-toggle" @click="togglePanel">
+      <span v-if="activePanel === 'map'">Layers</span>
+      <span v-else>Map</span>
+    </button>
 
     <footer class="app-footer">
       City of Philadelphia
@@ -135,6 +183,63 @@ const sources = {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+</style>
+
+<!-- Popup styles (unscoped for MapLibre) -->
+<style>
+.popup-content {
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.popup-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f4d90;
+}
+
+.popup-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.popup-table th,
+.popup-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.popup-table th {
+  font-weight: 600;
+  color: #666;
+  width: 40%;
+}
+
+.popup-table td {
+  color: #333;
+}
+
+.popup-no-fields {
+  color: #666;
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.popup-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #ddd;
+}
+
+.popup-nav-info {
+  font-size: 12px;
+  color: #666;
 }
 </style>
 
@@ -165,43 +270,15 @@ body {
   min-height: 0;
 }
 
-.left-panel {
+.layer-panel-wrapper {
   width: 30%;
-  background-color: #fff;
+  min-width: 280px;
+  max-width: 400px;
   border-right: 1px solid #ddd;
   flex-shrink: 0;
-  overflow-y: auto;
 }
 
-.layer-list {
-  padding: 16px;
-}
-
-.layer-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 8px;
-  cursor: pointer;
-  font-size: 16px;
-  color: #333;
-}
-
-.layer-checkbox:hover {
-  background-color: #f5f5f5;
-}
-
-.layer-checkbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-}
-
-.layer-checkbox span {
-  line-height: 1.3;
-}
-
-.map-container {
+.map-panel-wrapper {
   flex: 1;
   position: relative;
 }
@@ -212,5 +289,68 @@ body {
   padding: 10px 20px;
   flex-shrink: 0;
   font-size: 14px;
+}
+
+/* Mobile toggle button - hidden on desktop */
+.mobile-toggle {
+  display: none;
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #0f4d90;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.mobile-toggle:hover {
+  background-color: #0d3d73;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .app-main {
+    position: relative;
+  }
+
+  .layer-panel-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    z-index: 10;
+    display: none;
+    border-right: none;
+  }
+
+  .layer-panel-wrapper.active {
+    display: block;
+  }
+
+  .map-panel-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+
+  .map-panel-wrapper.active {
+    display: block;
+  }
+
+  .mobile-toggle {
+    display: block;
+  }
 }
 </style>

@@ -13,11 +13,12 @@ export const licensesAndInspectionsComplaints = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/COMPLAINTS/FeatureServer/0",
   where: "complaintdate BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP",
+  minZoom: 15.02,
   opacity: 1,
 
   paint: {
       "circle-color": "#f3c613",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -70,7 +71,11 @@ export const licensesAndInspectionsComplaints = {
           },
           {
               "field": "complaintdate",
-              "label": "Complaint Date"
+              "label": "Complaint Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "complaintstatus",
@@ -78,11 +83,19 @@ export const licensesAndInspectionsComplaints = {
           },
           {
               "field": "initialinvestigation_date",
-              "label": "Initial Investigation Date"
+              "label": "Initial Investigation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "complaintresolution_date",
-              "label": "Complaint Resolution Date"
+              "label": "Complaint Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           }
       ]
   },

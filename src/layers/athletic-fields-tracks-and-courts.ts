@@ -46,7 +46,7 @@ export const athleticFieldsTracksAndCourts = {
           "#b54779",
           "#aaaaaa"
       ],
-      "circle-radius": 8.4375,
+      "circle-radius": 7.99,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -105,6 +105,11 @@ export const athleticFieldsTracksAndCourts = {
           "type": "circle",
           "color": "#b54779",
           "label": "Bocci Court"
+      },
+      {
+          "type": "circle",
+          "color": "#aaaaaa",
+          "label": "Other"
       }
   ],
 

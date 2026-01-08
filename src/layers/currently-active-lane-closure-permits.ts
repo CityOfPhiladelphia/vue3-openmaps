@@ -13,6 +13,7 @@ export const currentlyActiveLaneClosurePermits = {
   type: "line" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/LaneClosure_Master/FeatureServer/0",
   where: "(effectivedate BETWEEN CURRENT_TIMESTAMP - 5120 AND CURRENT_TIMESTAMP) AND (expirationdate NOT BETWEEN CURRENT_TIMESTAMP - 5120 AND CURRENT_TIMESTAMP)",
+  minZoom: 14.37,
   opacity: 1,
 
   paint: {
@@ -52,6 +53,12 @@ export const currentlyActiveLaneClosurePermits = {
           "color": "#ed5151",
           "width": 3,
           "label": "Full Closure"
+      },
+      {
+          "type": "line",
+          "color": "#888888",
+          "width": 1.5,
+          "label": "Other"
       }
   ],
 
@@ -64,11 +71,19 @@ export const currentlyActiveLaneClosurePermits = {
           },
           {
               "field": "effectivedate",
-              "label": "Beginning Date"
+              "label": "Beginning Date",
+              "format": {
+                  "dateFormat": "longMonthDayYear",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "expirationdate",
-              "label": "Ending Date"
+              "label": "Ending Date",
+              "format": {
+                  "dateFormat": "longMonthDayYear",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "occupancytype",
@@ -80,7 +95,11 @@ export const currentlyActiveLaneClosurePermits = {
           },
           {
               "field": "raindate",
-              "label": "Rain Date"
+              "label": "Rain Date",
+              "format": {
+                  "dateFormat": "longMonthDayYear",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

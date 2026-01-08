@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Census_Tracts_2020/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const censusTracts2020 = {
   id: "census-tracts-2020",
@@ -19,6 +19,11 @@ export const censusTracts2020 = {
       "fill-opacity": 1,
       "fill-outline-color": "#474747"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#474747",
+      "line-width": 1.5
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {

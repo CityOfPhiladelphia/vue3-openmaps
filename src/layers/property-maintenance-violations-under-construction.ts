@@ -17,7 +17,7 @@ export const propertyMaintenanceViolationsUnderConstruction = {
 
   paint: {
       "circle-color": "#00c5ff",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -50,15 +50,27 @@ export const propertyMaintenanceViolationsUnderConstruction = {
           },
           {
               "field": "CASEADDEDDATE",
-              "label": "Case Added Date"
+              "label": "Case Added Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONDATE",
-              "label": "Case Resolution Code"
+              "label": "Case Resolution Code",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "VIOLATIONDATE",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "VIOLATIONTYPE",
@@ -70,7 +82,11 @@ export const propertyMaintenanceViolationsUnderConstruction = {
           },
           {
               "field": "MOSTRECENTINSP",
-              "label": "Most Recent Inspection"
+              "label": "Most Recent Inspection",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASESTATUS",

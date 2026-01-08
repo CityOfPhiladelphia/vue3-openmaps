@@ -68,7 +68,11 @@ export const recyclingDiversionRate = {
       "fields": [
           {
               "field": "score",
-              "label": "Score"
+              "label": "Score",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           }
       ]
   },

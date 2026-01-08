@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Zipcodes_Poly/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const zipcodes = {
   id: "zipcodes",
@@ -19,6 +19,11 @@ export const zipcodes = {
       "fill-opacity": 1,
       "fill-outline-color": "#666666"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#666666",
+      "line-width": 2.25
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {

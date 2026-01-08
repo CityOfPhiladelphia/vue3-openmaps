@@ -13,11 +13,12 @@ export const businessViolationsUnderConstruction = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/LI_VIOLATIONS/FeatureServer/0",
   where: "(VIOLATIONDATE BETWEEN CURRENT_TIMESTAMP - 256 AND CURRENT_TIMESTAMP AND VIOLATIONTYPE <> '14-231/2' AND VIOLATIONTYPE <> '14-231/1' AND VIOLATIONTYPE <> '14-231/3' AND VIOLATIONTYPE <> '14-231/4' AND VIOLATIONTYPE <> '9-1003.2/1' AND VIOLATIONTYPE <> '9-1004' AND VIOLATIONTYPE <> '9-1004(6E)' AND VIOLATIONTYPE <> '9-1004.2/1' AND VIOLATIONTYPE <> '9-1004.2/2' AND VIOLATIONTYPE <> '9-1004.2/3' AND VIOLATIONTYPE <> '9-2502.1/1' AND VIOLATIONTYPE <> '9-2502.1/2' AND VIOLATIONTYPE <> '9-504.1/1') AND (VIOLATIONTYPE = 'PM-102.6/6' OR VIOLATIONTYPE = 'PM-102.8/1' OR VIOLATIONTYPE = 'PM-704.1/1' OR VIOLATIONTYPE = 'PM-704.1/2' OR VIOLATIONTYPE = 'PM-704.1/3' OR VIOLATIONTYPE = 'PM-704.1/4' OR VIOLATIONTYPE = 'PM-704.1/5' OR VIOLATIONTYPE = 'PM-704.1/5' OR VIOLATIONTYPE = 'PM-704.2/5' OR VIOLATIONTYPE = 'PM-704.3/2' OR VIOLATIONTYPE = 'PM-704.3/3' OR VIOLATIONTYPE = 'PM-102.4/4' OR VIOLATIONTYPE LIKE '03-%' OR VIOLATIONTYPE LIKE '06-%' OR VIOLATIONTYPE LIKE '09-%' OR VIOLATIONTYPE LIKE '9-%' OR VIOLATIONTYPE LIKE '10-%' OR VIOLATIONTYPE LIKE '14-%' OR VIOLATIONTYPE LIKE '19-%' OR VIOLATIONTYPE LIKE 'LD-%' OR VIOLATIONTYPE LIKE 'LO-%' OR VIOLATIONTYPE LIKE 'PA-%')",
+  minZoom: 13.71,
   opacity: 1,
 
   paint: {
       "circle-color": "#a80000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -50,11 +51,19 @@ export const businessViolationsUnderConstruction = {
           },
           {
               "field": "CASEADDEDDATE",
-              "label": "Case Added Date"
+              "label": "Case Added Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONDATE",
-              "label": "Case Resolution Date"
+              "label": "Case Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONCODE",
@@ -62,7 +71,11 @@ export const businessViolationsUnderConstruction = {
           },
           {
               "field": "VIOLATIONDATE",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "VIOLATIONTYPE",
@@ -74,7 +87,11 @@ export const businessViolationsUnderConstruction = {
           },
           {
               "field": "MOSTRECENTINSP",
-              "label": "Most Recent Inspection"
+              "label": "Most Recent Inspection",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASESTATUS",

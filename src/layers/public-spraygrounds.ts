@@ -16,7 +16,7 @@ export const publicSpraygrounds = {
 
   paint: {
       "circle-color": "#2176d2",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

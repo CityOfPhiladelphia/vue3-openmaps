@@ -17,7 +17,7 @@ export const zoningAndPlanningZoningBoardOfAdjustmentAppeals = {
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -74,15 +74,27 @@ export const zoningAndPlanningZoningBoardOfAdjustmentAppeals = {
           },
           {
               "field": "createddate",
-              "label": "Created Date"
+              "label": "Created Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "scheduleddate",
-              "label": "Scheduled Date"
+              "label": "Scheduled Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "completeddate",
-              "label": "Completed Date"
+              "label": "Completed Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "relatedpermit",
@@ -114,7 +126,11 @@ export const zoningAndPlanningZoningBoardOfAdjustmentAppeals = {
           },
           {
               "field": "decisiondate",
-              "label": "Decision Date"
+              "label": "Decision Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           }
       ]
   },

@@ -13,11 +13,12 @@ export const constructionPermitsElectrical = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/PERMITS/FeatureServer/0",
   where: "(permitissuedate BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP) AND (permittype = 'ELECTRICAL' OR permittype = 'EP_ELECTRL')",
+  minZoom: 15.25,
   opacity: 1,
 
   paint: {
       "circle-color": "#ff0000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -66,7 +67,11 @@ export const constructionPermitsElectrical = {
           },
           {
               "field": "permitissuedate",
-              "label": "Issue Date"
+              "label": "Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

@@ -13,6 +13,7 @@ export const futureLaneClosurePermits = {
   type: "line" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/LaneClosure_Master/FeatureServer/0",
   where: "effectivedate NOT BETWEEN CURRENT_TIMESTAMP - 5120 AND CURRENT_TIMESTAMP",
+  minZoom: 14.22,
   opacity: 1,
 
   paint: {
@@ -60,11 +61,19 @@ export const futureLaneClosurePermits = {
           },
           {
               "field": "effectivedate",
-              "label": "Beginning Date"
+              "label": "Beginning Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "expirationdate",
-              "label": "Ending Date"
+              "label": "Ending Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "occupancytype",
@@ -76,7 +85,11 @@ export const futureLaneClosurePermits = {
           },
           {
               "field": "raindate",
-              "label": "Rain Date"
+              "label": "Rain Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

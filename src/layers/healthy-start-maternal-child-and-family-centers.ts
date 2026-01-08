@@ -16,7 +16,7 @@ export const healthyStartMaternalChildAndFamilyCenters = {
 
   paint: {
       "circle-color": "#8400c6",
-      "circle-radius": 10.499999999999998,
+      "circle-radius": 9.94,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -45,7 +45,11 @@ export const healthyStartMaternalChildAndFamilyCenters = {
           },
           {
               "field": "zip",
-              "label": "Zip"
+              "label": "Zip",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "phone",

@@ -12,11 +12,12 @@ export const bigBellyWastebaskets = {
   title: "Big Belly Wastebaskets",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/WasteBaskets_Big_Belly/FeatureServer/0",
+  minZoom: 12.18,
   opacity: 1,
 
   paint: {
       "circle-color": "#004da8",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

@@ -13,11 +13,12 @@ export const licensesAndInspectionsCaseInvestigations = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/CASE_INVESTIGATIONS/FeatureServer/0",
   where: "(investigationcompleted IS NULL) OR (investigationcompleted BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP)",
+  minZoom: 14.37,
   opacity: 1,
 
   paint: {
       "circle-color": "#cc3000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

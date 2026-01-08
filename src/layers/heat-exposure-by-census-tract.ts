@@ -40,15 +40,27 @@ export const heatExposureByCensusTract = {
       "fields": [
           {
               "field": "HEI_SCORE",
-              "label": "Heat Exposure"
+              "label": "Heat Exposure",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           },
           {
               "field": "HSI_SCORE",
-              "label": "Sensitivity to Heat"
+              "label": "Sensitivity to Heat",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           },
           {
               "field": "HVI_SCORE",
-              "label": "Heat Vulnerability"
+              "label": "Heat Vulnerability",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           }
       ]
   },

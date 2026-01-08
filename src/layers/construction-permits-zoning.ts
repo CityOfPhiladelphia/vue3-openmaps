@@ -13,11 +13,12 @@ export const constructionPermitsZoning = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/PERMITS/FeatureServer/0",
   where: "(permittype = 'ZP_ZON/USE') OR (permittype = 'ZP_ZONING')",
+  minZoom: 14.83,
   opacity: 1,
 
   paint: {
       "circle-color": "#38a800",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -66,7 +67,11 @@ export const constructionPermitsZoning = {
           },
           {
               "field": "permitissuedate",
-              "label": "PERMITISSUEDATE"
+              "label": "PERMITISSUEDATE",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

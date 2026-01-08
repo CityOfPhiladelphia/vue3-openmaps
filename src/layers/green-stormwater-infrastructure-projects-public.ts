@@ -43,7 +43,7 @@ export const greenStormwaterInfrastructureProjectsPublic = {
           "#6b6bd6",
           "#aaaaaa"
       ],
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -105,7 +105,11 @@ export const greenStormwaterInfrastructureProjectsPublic = {
       "fields": [
           {
               "field": "projectid",
-              "label": "Project ID"
+              "label": "Project ID",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "projectname",
@@ -129,71 +133,139 @@ export const greenStormwaterInfrastructureProjectsPublic = {
           },
           {
               "field": "smp_treetrench",
-              "label": "SMP Tree Trench"
+              "label": "SMP Tree Trench",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_planter",
-              "label": "SMP Planter"
+              "label": "SMP Planter",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_bumpout",
-              "label": "SMP Bumpout"
+              "label": "SMP Bumpout",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_raingarden",
-              "label": "SMP Rain Garden"
+              "label": "SMP Rain Garden",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_basin",
-              "label": "SMP Basin"
+              "label": "SMP Basin",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_infiltrationstoragetrench",
-              "label": "SMP Infiltration Storage Trench"
+              "label": "SMP Infiltration Storage Trench",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_perviouspaving",
-              "label": "SMP Pervious Paving"
+              "label": "SMP Pervious Paving",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_swale",
-              "label": "SMP Swale"
+              "label": "SMP Swale",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_wetland",
-              "label": "SMP Wetland"
+              "label": "SMP Wetland",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_cisternrainbarrel",
-              "label": "SMP Cistern Rain Barrel"
+              "label": "SMP Cistern Rain Barrel",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_greenroof",
-              "label": "SMP Green Roof"
+              "label": "SMP Green Roof",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_stormwatertree",
-              "label": "SMP Stormwater Tree"
+              "label": "SMP Stormwater Tree",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_drainagewell",
-              "label": "SMP Drainage Well"
+              "label": "SMP Drainage Well",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_greengutter",
-              "label": "SMP Green Gutter"
+              "label": "SMP Green Gutter",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_blueroof",
-              "label": "SMP Blue Roof"
+              "label": "SMP Blue Roof",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_depaving",
-              "label": "SMP Depaving"
+              "label": "SMP Depaving",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "smp_inletdisconnection",
-              "label": "SMP Inlet Disconnection"
+              "label": "SMP Inlet Disconnection",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "status",

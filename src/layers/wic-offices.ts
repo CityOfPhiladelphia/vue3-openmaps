@@ -16,7 +16,7 @@ export const wicOffices = {
 
   paint: {
       "circle-color": "#fc8ce2",
-      "circle-radius": 10.499999999999998,
+      "circle-radius": 9.94,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

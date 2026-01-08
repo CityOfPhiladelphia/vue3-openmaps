@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Combined_Sewer_Service_Area/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const combinedSewerServiceArea = {
   id: "combined-sewer-service-area",
@@ -19,6 +19,11 @@ export const combinedSewerServiceArea = {
       "fill-opacity": 0.17,
       "fill-outline-color": "#353535"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#353535",
+      "line-width": 2
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {

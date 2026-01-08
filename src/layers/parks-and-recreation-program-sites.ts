@@ -16,7 +16,7 @@ export const parksAndRecreationProgramSites = {
 
   paint: {
       "circle-color": "#58c04d",
-      "circle-radius": 8.251875000000002,
+      "circle-radius": 7.81,
       "circle-opacity": 1,
       "circle-stroke-color": "rgba(0, 0, 0, 0.00)",
       "circle-stroke-width": 1

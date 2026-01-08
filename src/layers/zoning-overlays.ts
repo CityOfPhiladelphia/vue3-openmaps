@@ -12,6 +12,7 @@ export const zoningOverlays = {
   title: "Zoning Overlays",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Zoning_Overlays/FeatureServer/0",
+  minZoom: 11.58,
   opacity: 1,
 
   paint: {} as FillLayerSpecification["paint"],

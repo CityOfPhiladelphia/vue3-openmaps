@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Zoning_RCO/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const registeredCommunityOrganizationsRco = {
   id: "registered-community-organizations-rco",
@@ -19,6 +19,11 @@ export const registeredCommunityOrganizationsRco = {
       "fill-opacity": 0.75,
       "fill-outline-color": "#6e6e6e"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#6e6e6e",
+      "line-width": 1.5
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {
@@ -69,7 +74,11 @@ export const registeredCommunityOrganizationsRco = {
           },
           {
               "field": "p_phone_ext",
-              "label": "Primary Phone Ext."
+              "label": "Primary Phone Ext.",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "alternate_name",
@@ -89,7 +98,11 @@ export const registeredCommunityOrganizationsRco = {
           },
           {
               "field": "a_phone_ext",
-              "label": "Alternate Phone Ext."
+              "label": "Alternate Phone Ext.",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           }
       ]
   },

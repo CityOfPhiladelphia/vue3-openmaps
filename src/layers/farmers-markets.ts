@@ -16,7 +16,7 @@ export const farmersMarkets = {
 
   paint: {
       "circle-color": "#00c5ff",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

@@ -17,7 +17,7 @@ export const olderAdultCommunityCenters = {
 
   paint: {
       "circle-color": "#8400a8",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

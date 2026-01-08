@@ -12,11 +12,12 @@ export const licensesAndInspectionsImminentlyDangerousViolations = {
   title: "Licenses and Inspections - Imminently Dangerous Violations",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/IMM_DANG/FeatureServer/0",
+  minZoom: 12.77,
   opacity: 1,
 
   paint: {
       "circle-color": "#999999",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -45,11 +46,19 @@ export const licensesAndInspectionsImminentlyDangerousViolations = {
           },
           {
               "field": "casecreateddate",
-              "label": "Case Added Date"
+              "label": "Case Added Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "casecompleteddate",
-              "label": "Case Completion Date"
+              "label": "Case Completion Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationnumber",
@@ -57,7 +66,11 @@ export const licensesAndInspectionsImminentlyDangerousViolations = {
           },
           {
               "field": "violationdate",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationcode",
@@ -69,7 +82,11 @@ export const licensesAndInspectionsImminentlyDangerousViolations = {
           },
           {
               "field": "violationresolutiondate",
-              "label": "Violation Resolution Date"
+              "label": "Violation Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationresolutioncode",
@@ -77,7 +94,11 @@ export const licensesAndInspectionsImminentlyDangerousViolations = {
           },
           {
               "field": "mostrecentinvestigation",
-              "label": "Most Recent Investigation"
+              "label": "Most Recent Investigation",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           }
       ]
   },

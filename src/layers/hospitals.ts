@@ -16,7 +16,7 @@ export const hospitals = {
 
   paint: {
       "circle-color": "#ff73df",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -37,7 +37,11 @@ export const hospitals = {
           },
           {
               "field": "zip_code",
-              "label": "ZipCode"
+              "label": "ZipCode",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "phone_number",

@@ -13,11 +13,12 @@ export const licensesAndInspectionsCleanSeal = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/CLEAN_SEAL/FeatureServer/0",
   where: "casecreateddate BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP",
+  minZoom: 12.76,
   opacity: 1,
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

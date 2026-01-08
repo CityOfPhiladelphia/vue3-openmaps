@@ -9,9 +9,16 @@ export interface LegendItem {
   width?: number;
 }
 
+export interface PopupFieldFormat {
+  dateFormat?: string;
+  digitSeparator?: boolean;
+  places?: number;
+}
+
 export interface PopupField {
   field: string;
   label: string;
+  format?: PopupFieldFormat;
 }
 
 export interface PopupConfig {
@@ -25,8 +32,11 @@ export interface LayerConfig {
   type: "fill" | "line" | "circle";
   url: string;
   where?: string;
+  minZoom?: number;
+  maxZoom?: number;
   opacity: number;
   paint: Record<string, unknown>;
+  outlinePaint?: Record<string, unknown>;
   legend: LegendItem[];
   popup: PopupConfig | null;
 }

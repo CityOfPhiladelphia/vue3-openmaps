@@ -13,11 +13,12 @@ export const rentalLicenseViolationsUnderConstruction = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/LI_VIOLATIONS/FeatureServer/0",
   where: "(VIOLATIONTYPE = 'PM-102.0/1') OR (VIOLATIONTYPE = 'PM-102.3/1') OR (VIOLATIONTYPE = 'PM-102.6/3') OR (VIOLATIONTYPE = 'PM-102.1/1') OR (VIOLATIONTYPE = 'PM-102.2/1')",
+  minZoom: 14.42,
   opacity: 1,
 
   paint: {
       "circle-color": "#a80000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -50,11 +51,19 @@ export const rentalLicenseViolationsUnderConstruction = {
           },
           {
               "field": "CASEADDEDDATE",
-              "label": "Case Added Date"
+              "label": "Case Added Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONDATE",
-              "label": "Case Resolution Date"
+              "label": "Case Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONCODE",
@@ -62,7 +71,11 @@ export const rentalLicenseViolationsUnderConstruction = {
           },
           {
               "field": "VIOLATIONDATE",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "VIOLATIONTYPE",
@@ -74,7 +87,11 @@ export const rentalLicenseViolationsUnderConstruction = {
           },
           {
               "field": "MOSTRECENTINSP",
-              "label": "Most Recent Inspection"
+              "label": "Most Recent Inspection",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASESTATUS",

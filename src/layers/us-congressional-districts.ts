@@ -12,6 +12,7 @@ export const usCongressionalDistricts = {
   title: "US Congressional Districts",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/US_Congressional_2018/FeatureServer/0",
+  minZoom: 7.23,
   opacity: 0.8,
 
   paint: {
@@ -56,7 +57,11 @@ export const usCongressionalDistricts = {
       "fields": [
           {
               "field": "ID",
-              "label": "ID"
+              "label": "ID",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "DISTRICT",

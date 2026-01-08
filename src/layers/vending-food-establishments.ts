@@ -16,7 +16,7 @@ export const vendingFoodEstablishments = {
 
   paint: {
       "circle-color": "#38a800",
-      "circle-radius": 6.75,
+      "circle-radius": 6.39,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -37,7 +37,11 @@ export const vendingFoodEstablishments = {
           },
           {
               "field": "LICENSENUMBER",
-              "label": "License Number"
+              "label": "License Number",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "INITIALISSUEDATE",
@@ -45,7 +49,11 @@ export const vendingFoodEstablishments = {
           },
           {
               "field": "MOSTRECENTISSUEDATE",
-              "label": "Most Recent Issue Date"
+              "label": "Most Recent Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "BUSINESSCONTACTNAME",

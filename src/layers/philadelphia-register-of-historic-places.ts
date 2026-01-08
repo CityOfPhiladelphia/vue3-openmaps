@@ -12,6 +12,7 @@ export const philadelphiaRegisterOfHistoricPlaces = {
   title: "Philadelphia Register of Historic Places",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Historic_sites_PhilReg/FeatureServer/0",
+  minZoom: 13.19,
   opacity: 0.72,
 
   paint: {

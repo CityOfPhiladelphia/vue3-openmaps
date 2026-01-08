@@ -12,6 +12,7 @@ export const phsLandcareParcels = {
   title: "PHS LandCare Parcels",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/phs_landcare/FeatureServer/0",
+  minZoom: 15.69,
   opacity: 1,
 
   paint: {
@@ -37,7 +38,11 @@ export const phsLandcareParcels = {
           },
           {
               "field": "zipcode",
-              "label": "Zipcode"
+              "label": "Zipcode",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "district",
@@ -73,7 +78,11 @@ export const phsLandcareParcels = {
           },
           {
               "field": "parcelarea",
-              "label": "Parcel Area"
+              "label": "Parcel Area",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           }
       ]
   },

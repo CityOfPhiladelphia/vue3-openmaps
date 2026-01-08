@@ -17,7 +17,7 @@ export const freeLibraries = {
 
   paint: {
       "circle-color": "#0070ff",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

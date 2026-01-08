@@ -16,7 +16,7 @@ export const condomDistributionSites = {
 
   paint: {
       "circle-color": "#df73ff",
-      "circle-radius": 9.75,
+      "circle-radius": 9.23,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -53,7 +53,11 @@ export const condomDistributionSites = {
           },
           {
               "field": "zip",
-              "label": "Zip"
+              "label": "Zip",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           }
       ]
   },

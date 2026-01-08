@@ -39,7 +39,7 @@ export const raincheckInstallationSites = {
           "#2f679e",
           "#aaaaaa"
       ],
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

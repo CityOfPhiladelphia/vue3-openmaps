@@ -23,11 +23,19 @@ export const regionalWatersheds = {
       "fields": [
           {
               "field": "sq_miles",
-              "label": "Area (sq.mi.)"
+              "label": "Area (sq.mi.)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "acres",
-              "label": "Area (acres)"
+              "label": "Area (acres)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           }
       ]
   },

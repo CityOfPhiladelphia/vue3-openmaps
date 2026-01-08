@@ -13,11 +13,12 @@ export const businessLicensesFood = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/BUSINESS_LICENSES/FeatureServer/0",
   where: "(revenuecode = '3113') OR (revenuecode = '3118') OR (revenuecode = '3119') OR (revenuecode = '3120') OR (revenuecode = '3121') OR (revenuecode = '3122') OR (revenuecode = '3123')",
+  minZoom: 14.77,
   opacity: 1,
 
   paint: {
       "circle-color": "#38a800",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -58,19 +59,35 @@ export const businessLicensesFood = {
           },
           {
               "field": "initialissuedate",
-              "label": "Initial Issue Date"
+              "label": "Initial Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "mostrecentissuedate",
-              "label": "Most Recent Issue Date"
+              "label": "Most Recent Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "expirationdate",
-              "label": "Expiration Date"
+              "label": "Expiration Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "inactivedate",
-              "label": "Inactive Date"
+              "label": "Inactive Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "licensestatus",

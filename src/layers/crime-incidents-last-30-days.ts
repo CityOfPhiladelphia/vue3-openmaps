@@ -13,6 +13,7 @@ export const crimeIncidentsLast30Days = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/INCIDENTS_PART1_PART2/FeatureServer/0",
   where: "dispatch_date_time BETWEEN CURRENT_TIMESTAMP - 30 AND CURRENT_TIMESTAMP",
+  minZoom: 14.43,
   opacity: 1,
 
   paint: {
@@ -88,7 +89,7 @@ export const crimeIncidentsLast30Days = {
           "#f3c613",
           "#aaaaaa"
       ],
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -260,7 +261,11 @@ export const crimeIncidentsLast30Days = {
       "fields": [
           {
               "field": "dispatch_date_time",
-              "label": "Dispatch Date/Time"
+              "label": "Dispatch Date/Time",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "location_block",

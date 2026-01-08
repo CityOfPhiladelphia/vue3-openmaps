@@ -12,11 +12,12 @@ export const licensesAndInspectionsViolationsAllUnderConstruction = {
   title: "Licenses and Inspections - Violations (All) (under construction)",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/LI_VIOLATIONS/FeatureServer/0",
+  minZoom: 16.25,
   opacity: 1,
 
   paint: {
       "circle-color": "#b45533",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -45,7 +46,11 @@ export const licensesAndInspectionsViolationsAllUnderConstruction = {
           },
           {
               "field": "CASEADDEDDATE",
-              "label": "Case Added Date"
+              "label": "Case Added Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "VIOLATIONTYPE",
@@ -57,11 +62,19 @@ export const licensesAndInspectionsViolationsAllUnderConstruction = {
           },
           {
               "field": "VIOLATIONDATE",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "CASERESOLUTIONDATE",
-              "label": "Case Resolved Date"
+              "label": "Case Resolved Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "STATUS",

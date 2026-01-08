@@ -75,6 +75,12 @@ export const bikeNetwork = {
           "color": "#2ac9c4",
           "width": 3,
           "label": "Sharrow"
+      },
+      {
+          "type": "line",
+          "color": "#aaaaaa",
+          "width": 3,
+          "label": "Other"
       }
   ],
 

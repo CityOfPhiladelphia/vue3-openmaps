@@ -12,11 +12,12 @@ export const licensesAndInspectionsUnsafeViolations = {
   title: "Licenses and Inspections - Unsafe Violations",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/UNSAFE/FeatureServer/0",
+  minZoom: 12.21,
   opacity: 1,
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -45,11 +46,19 @@ export const licensesAndInspectionsUnsafeViolations = {
           },
           {
               "field": "casecreateddate",
-              "label": "Case Created Date"
+              "label": "Case Created Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "casecompleteddate",
-              "label": "Case Completed Date"
+              "label": "Case Completed Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "caseresponsibility",
@@ -61,7 +70,11 @@ export const licensesAndInspectionsUnsafeViolations = {
           },
           {
               "field": "violationdate",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationcode",
@@ -73,7 +86,11 @@ export const licensesAndInspectionsUnsafeViolations = {
           },
           {
               "field": "violationresolutiondate",
-              "label": "Violation Resolution Date"
+              "label": "Violation Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationresolutioncode",

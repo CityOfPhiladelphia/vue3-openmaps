@@ -13,6 +13,7 @@ export const landUse = {
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Land_Use/FeatureServer/0",
   where: "c_dig1 <> 5",
+  minZoom: 14.52,
   opacity: 1,
 
   paint: {
@@ -148,7 +149,11 @@ export const landUse = {
       "fields": [
           {
               "field": "objectid",
-              "label": "OBJECTID"
+              "label": "OBJECTID",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "c_dig1desc",
@@ -164,7 +169,11 @@ export const landUse = {
           },
           {
               "field": "year",
-              "label": "Year"
+              "label": "Year",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "vacbldg",

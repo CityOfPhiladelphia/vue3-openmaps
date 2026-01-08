@@ -16,8 +16,12 @@ const path = require('path');
 // CONFIGURATION
 // ============================================================================
 
+// Resolve output directory relative to this script's location (project root)
+const SCRIPT_DIR = __dirname;
+const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
+
 const WEBMAP_ID = process.argv[2] || '1596df70df0349e293ceec46a06ccc50';
-const OUTPUT_DIR = process.argv[3] || './src/layers';
+const OUTPUT_DIR = process.argv[3] || path.join(PROJECT_ROOT, 'src', 'layers');
 const WEBMAP_URL = `https://phl.maps.arcgis.com/sharing/rest/content/items/${WEBMAP_ID}/data?f=json`;
 
 // ============================================================================
@@ -47,6 +51,51 @@ function esriColorToCSS(color) {
  */
 function convertOpacity(opacity) {
   return opacity !== undefined ? opacity : 1;
+}
+
+// ============================================================================
+// SCALE TO ZOOM CONVERSION
+// ============================================================================
+
+/**
+ * Convert Esri map scale to MapLibre zoom level
+ *
+ * Esri minScale = layer disappears when zoomed OUT beyond this scale (large number = zoomed out)
+ * Esri maxScale = layer disappears when zoomed IN beyond this scale (small number = zoomed in)
+ *
+ * MapLibre minzoom = layer appears at this zoom and higher (more zoomed in)
+ * MapLibre maxzoom = layer disappears at this zoom and higher (more zoomed in)
+ *
+ * Formula: zoom ≈ log2(559082264 / scale)
+ * 559082264 is the approximate scale at zoom 0 at the equator
+ */
+const SCALE_AT_ZOOM_0 = 559082264;
+
+function scaleToZoom(scale) {
+  if (!scale || scale <= 0) return null;
+  return Math.round(Math.log2(SCALE_AT_ZOOM_0 / scale) * 100) / 100;
+}
+
+/**
+ * Convert Esri minScale/maxScale to MapLibre minzoom/maxzoom
+ * Note: The relationship is inverted!
+ * - Esri minScale (large) → MapLibre minzoom (small zoom number = zoomed out)
+ * - Esri maxScale (small) → MapLibre maxzoom (large zoom number = zoomed in)
+ */
+function convertScaleRange(minScale, maxScale) {
+  const result = {};
+
+  // Esri minScale (zoomed out limit) → MapLibre minzoom
+  if (minScale && minScale > 0) {
+    result.minZoom = scaleToZoom(minScale);
+  }
+
+  // Esri maxScale (zoomed in limit) → MapLibre maxzoom
+  if (maxScale && maxScale > 0) {
+    result.maxZoom = scaleToZoom(maxScale);
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -99,6 +148,7 @@ function convertSimpleRenderer(renderer, layerOpacity) {
 
   let paint = {};
   let legend = [];
+  let outlinePaint = null;
 
   if (geomType === 'fill' && symbol) {
     paint = {
@@ -106,8 +156,22 @@ function convertSimpleRenderer(renderer, layerOpacity) {
       'fill-opacity': convertOpacity(layerOpacity),
     };
 
+    // For fill layers with visible outlines, create separate outline paint
+    // MapLibre's fill-outline-color only supports 1px, so we need a LineLayer for thicker outlines
     if (hasVisibleOutline(symbol.outline)) {
-      paint['fill-outline-color'] = esriColorToCSS(symbol.outline.color);
+      const outlineWidth = symbol.outline.width || 1;
+      const outlineColor = esriColorToCSS(symbol.outline.color);
+
+      // Always add fill-outline-color for the 1px fallback
+      paint['fill-outline-color'] = outlineColor;
+
+      // If outline is thicker than 1px, create separate line paint
+      if (outlineWidth > 1) {
+        outlinePaint = {
+          'line-color': outlineColor,
+          'line-width': outlineWidth,
+        };
+      }
     }
 
     legend = [{
@@ -130,8 +194,8 @@ function convertSimpleRenderer(renderer, layerOpacity) {
     }];
   } else if (geomType === 'circle' && symbol) {
     // Esri size is diameter in points, MapLibre radius is in pixels
-    // Use size * 0.75 as a reasonable conversion (size/2 * 1.5 for point-to-pixel)
-    const radius = (symbol.size || 6) * 0.75;
+    // Empirically tuned multiplier to match Esri rendering
+    const radius = Math.round((symbol.size || 6) * 0.71 * 100) / 100;
 
     paint = {
       'circle-color': esriColorToCSS(symbol.color),
@@ -151,7 +215,7 @@ function convertSimpleRenderer(renderer, layerOpacity) {
     }];
   }
 
-  return { paint, legend, geomType };
+  return { paint, legend, geomType, outlinePaint };
 }
 
 /**
@@ -188,6 +252,7 @@ function convertUniqueValueRenderer(renderer, layerOpacity) {
 
   let paint = {};
   let legend = [];
+  let outlinePaint = null;
 
   if (geomType === 'fill') {
     // Build match expression for fill-color
@@ -214,7 +279,18 @@ function convertUniqueValueRenderer(renderer, layerOpacity) {
 
     // Handle outline if present
     if (hasVisibleOutline(firstSymbol?.outline)) {
-      paint['fill-outline-color'] = esriColorToCSS(firstSymbol.outline.color);
+      const outlineWidth = firstSymbol.outline.width || 1;
+      const outlineColor = esriColorToCSS(firstSymbol.outline.color);
+
+      paint['fill-outline-color'] = outlineColor;
+
+      // If outline is thicker than 1px, create separate line paint
+      if (outlineWidth > 1) {
+        outlinePaint = {
+          'line-color': outlineColor,
+          'line-width': outlineWidth,
+        };
+      }
     }
   } else if (geomType === 'line') {
     const colorMatch = ['match', ['get', field]];
@@ -255,8 +331,8 @@ function convertUniqueValueRenderer(renderer, layerOpacity) {
     colorMatch.push(defaultSymbol ? esriColorToCSS(defaultSymbol.color) : '#888888');
 
     // Esri size is diameter in points, MapLibre radius is in pixels
-    // Use size * 0.75 as a reasonable conversion (size/2 * 1.5 for point-to-pixel)
-    const radius = (firstSymbol?.size || 6) * 0.75;
+    // Empirically tuned multiplier to match Esri rendering
+    const radius = Math.round((firstSymbol?.size || 6) * 0.71 * 100) / 100;
 
     paint = {
       'circle-color': colorMatch,
@@ -270,7 +346,7 @@ function convertUniqueValueRenderer(renderer, layerOpacity) {
     }
   }
 
-  return { paint, legend, geomType };
+  return { paint, legend, geomType, outlinePaint };
 }
 
 /**
@@ -281,7 +357,7 @@ function convertClassBreaksRenderer(renderer, layerOpacity) {
   const classBreakInfos = renderer.classBreakInfos || [];
 
   if (classBreakInfos.length === 0) {
-    return { paint: {}, legend: [], geomType: 'fill' };
+    return { paint: {}, legend: [], geomType: 'fill', outlinePaint: null };
   }
 
   const firstSymbol = classBreakInfos[0]?.symbol;
@@ -289,6 +365,7 @@ function convertClassBreaksRenderer(renderer, layerOpacity) {
 
   let paint = {};
   let legend = [];
+  let outlinePaint = null;
 
   if (geomType === 'fill') {
     // Build step expression for fill-color
@@ -319,12 +396,22 @@ function convertClassBreaksRenderer(renderer, layerOpacity) {
       'fill-opacity': convertOpacity(layerOpacity),
     };
 
-    if (firstSymbol?.outline) {
-      paint['fill-outline-color'] = esriColorToCSS(firstSymbol.outline.color);
+    if (hasVisibleOutline(firstSymbol?.outline)) {
+      const outlineWidth = firstSymbol.outline.width || 1;
+      const outlineColor = esriColorToCSS(firstSymbol.outline.color);
+
+      paint['fill-outline-color'] = outlineColor;
+
+      if (outlineWidth > 1) {
+        outlinePaint = {
+          'line-color': outlineColor,
+          'line-width': outlineWidth,
+        };
+      }
     }
   }
 
-  return { paint, legend, geomType };
+  return { paint, legend, geomType, outlinePaint };
 }
 
 /**
@@ -332,7 +419,7 @@ function convertClassBreaksRenderer(renderer, layerOpacity) {
  */
 function convertRenderer(drawingInfo, layerOpacity) {
   if (!drawingInfo?.renderer) {
-    return { paint: {}, legend: [], geomType: 'fill' };
+    return { paint: {}, legend: [], geomType: 'fill', outlinePaint: null };
   }
 
   const renderer = drawingInfo.renderer;
@@ -346,7 +433,7 @@ function convertRenderer(drawingInfo, layerOpacity) {
       return convertClassBreaksRenderer(renderer, layerOpacity);
     default:
       console.warn(`Unknown renderer type: ${renderer.type}`);
-      return { paint: {}, legend: [], geomType: 'fill' };
+      return { paint: {}, legend: [], geomType: 'fill', outlinePaint: null };
   }
 }
 
@@ -363,13 +450,35 @@ function convertPopupInfo(popupInfo) {
   const title = popupInfo.title || '';
   const fieldInfos = popupInfo.fieldInfos || [];
 
-  // Filter to visible fields only
+  // Filter to visible fields only and include format info
   const visibleFields = fieldInfos
-    .filter(f => f.visible !== false)
-    .map(f => ({
-      field: f.fieldName,
-      label: f.label || f.fieldName,
-    }));
+    .filter(f => f.visible === true)
+    .map(f => {
+      const field = {
+        field: f.fieldName,
+        label: f.label || f.fieldName,
+      };
+
+      // Include format info if present
+      if (f.format) {
+        field.format = {};
+        if (f.format.dateFormat) {
+          field.format.dateFormat = f.format.dateFormat;
+        }
+        if (f.format.digitSeparator !== undefined) {
+          field.format.digitSeparator = f.format.digitSeparator;
+        }
+        if (f.format.places !== undefined) {
+          field.format.places = f.format.places;
+        }
+        // Only include format if it has properties
+        if (Object.keys(field.format).length === 0) {
+          delete field.format;
+        }
+      }
+
+      return field;
+    });
 
   return {
     title,
@@ -430,10 +539,11 @@ function getDisplayTitle(title) {
  * Generate TypeScript layer config file content
  */
 function generateLayerFile(layer, index) {
-  const { paint, legend, geomType } = convertRenderer(
+  const result = convertRenderer(
     layer.layerDefinition?.drawingInfo,
     layer.opacity
   );
+  const { paint, legend, geomType, outlinePaint } = result;
 
   const popup = convertPopupInfo(layer.popupInfo);
   const varName = titleToId(layer.title);
@@ -443,11 +553,30 @@ function generateLayerFile(layer, index) {
   // Get definition expression (where clause) if present
   const where = layer.layerDefinition?.definitionExpression || null;
 
+  // Get scale range from layerDefinition
+  const minScale = layer.layerDefinition?.minScale;
+  const maxScale = layer.layerDefinition?.maxScale;
+  const zoomRange = convertScaleRange(minScale, maxScale);
+
   // Determine MapLibre layer type
   const maplibreType = geomType === 'symbol' ? 'circle' : geomType;
 
   // Build the where clause line
   const whereClauseLine = where ? `\n  where: ${JSON.stringify(where)},` : '';
+
+  // Build the zoom range lines
+  const minZoomLine = zoomRange.minZoom !== undefined ? `\n  minZoom: ${zoomRange.minZoom},` : '';
+  const maxZoomLine = zoomRange.maxZoom !== undefined ? `\n  maxZoom: ${zoomRange.maxZoom},` : '';
+
+  // Build the outlinePaint line (for fill layers with thick outlines)
+  const outlinePaintLine = outlinePaint
+    ? `\n\n  outlinePaint: ${JSON.stringify(outlinePaint, null, 4).replace(/\n/g, '\n  ')} as LineLayerSpecification["paint"],`
+    : '';
+
+  // Need to import LineLayerSpecification if we have outlinePaint
+  const imports = outlinePaint
+    ? `import type { ${capitalize(maplibreType)}LayerSpecification, LineLayerSpecification } from "maplibre-gl";`
+    : `import type { ${capitalize(maplibreType)}LayerSpecification } from "maplibre-gl";`;
 
   const content = `/**
  * ${displayTitle}
@@ -456,16 +585,16 @@ function generateLayerFile(layer, index) {
  * Source: ${layer.url}
  */
 
-import type { ${capitalize(maplibreType)}LayerSpecification } from "maplibre-gl";
+${imports}
 
 export const ${varName} = {
   id: "${layerId}",
   title: "${displayTitle}",
   type: "${maplibreType}" as const,
-  url: "${layer.url}",${whereClauseLine}
+  url: "${layer.url}",${whereClauseLine}${minZoomLine}${maxZoomLine}
   opacity: ${layer.opacity ?? 1},
 
-  paint: ${JSON.stringify(paint, null, 4).replace(/\n/g, '\n  ')} as ${capitalize(maplibreType)}LayerSpecification["paint"],
+  paint: ${JSON.stringify(paint, null, 4).replace(/\n/g, '\n  ')} as ${capitalize(maplibreType)}LayerSpecification["paint"],${outlinePaintLine}
 
   legend: ${JSON.stringify(legend, null, 4).replace(/\n/g, '\n  ')},
 
@@ -537,9 +666,16 @@ export interface LegendItem {
   width?: number;
 }
 
+export interface PopupFieldFormat {
+  dateFormat?: string;
+  digitSeparator?: boolean;
+  places?: number;
+}
+
 export interface PopupField {
   field: string;
   label: string;
+  format?: PopupFieldFormat;
 }
 
 export interface PopupConfig {
@@ -553,8 +689,11 @@ export interface LayerConfig {
   type: "fill" | "line" | "circle";
   url: string;
   where?: string;
+  minZoom?: number;
+  maxZoom?: number;
   opacity: number;
   paint: Record<string, unknown>;
+  outlinePaint?: Record<string, unknown>;
   legend: LegendItem[];
   popup: PopupConfig | null;
 }

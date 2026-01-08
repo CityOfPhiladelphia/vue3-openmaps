@@ -12,6 +12,7 @@ export const rebuildSites = {
   title: "Rebuild Sites",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Rebuild_Sites/FeatureServer/0",
+  minZoom: 10.15,
   opacity: 1,
 
   paint: {
@@ -27,7 +28,7 @@ export const rebuildSites = {
           "#4ce600",
           "#888888"
       ],
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

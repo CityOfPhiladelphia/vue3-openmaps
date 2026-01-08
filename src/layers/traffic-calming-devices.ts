@@ -16,7 +16,7 @@ export const trafficCalmingDevices = {
 
   paint: {
       "circle-color": "#f99300",
-      "circle-radius": 8.4375,
+      "circle-radius": 7.99,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -33,7 +33,11 @@ export const trafficCalmingDevices = {
       "fields": [
           {
               "field": "seg_id",
-              "label": "Street Segment ID"
+              "label": "Street Segment ID",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           }
       ]
   },

@@ -17,7 +17,7 @@ export const healthCentersCityOwned = {
 
   paint: {
       "circle-color": "#9400c6",
-      "circle-radius": 10.499999999999998,
+      "circle-radius": 9.94,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -46,7 +46,11 @@ export const healthCentersCityOwned = {
           },
           {
               "field": "zip",
-              "label": "Zip"
+              "label": "Zip",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 0
+              }
           },
           {
               "field": "phone",

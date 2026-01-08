@@ -16,7 +16,7 @@ export const airManagementLatestCoreSiteReadings = {
 
   paint: {
       "circle-color": "#f3c613",
-      "circle-radius": 12,
+      "circle-radius": 11.36,
       "circle-opacity": 1,
       "circle-stroke-color": "rgba(0, 0, 0, 0.00)",
       "circle-stroke-width": 1
@@ -35,7 +35,11 @@ export const airManagementLatestCoreSiteReadings = {
       "fields": [
           {
               "field": "SAMPLE_TIMESTAMP",
-              "label": "Sample Timestamp"
+              "label": "Sample Timestamp",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "SAMPLE_HOUR",
@@ -51,27 +55,51 @@ export const airManagementLatestCoreSiteReadings = {
           },
           {
               "field": "CARBON_MONOXIDE_PPM",
-              "label": "Carbon Monoxide (ppm)"
+              "label": "Carbon Monoxide (ppm)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "NITROGEN_DIOXIDE_PPM",
-              "label": "Nitrogen Dioxide (ppm)"
+              "label": "Nitrogen Dioxide (ppm)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "OZONE_PPM",
-              "label": "Ozone (ppm)"
+              "label": "Ozone (ppm)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "PM10_UG_M3",
-              "label": "PM10 (UG/M3)"
+              "label": "PM10 (UG/M3)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "PM25_UG_M3",
-              "label": "PM25 (UG/M3)"
+              "label": "PM25 (UG/M3)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "SULFUR_DIOXIDE_PPB",
-              "label": "Sulfur Dioxide (ppb)"
+              "label": "Sulfur Dioxide (ppb)",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           }
       ]
   },

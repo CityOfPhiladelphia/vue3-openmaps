@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Political_Divisions/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const politicalWardDivisions = {
   id: "political-ward-divisions",
@@ -19,6 +19,11 @@ export const politicalWardDivisions = {
       "fill-opacity": 1,
       "fill-outline-color": "#9299a5"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#9299a5",
+      "line-width": 1.5
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {

@@ -16,7 +16,7 @@ export const registeredCommunityGardens = {
 
   paint: {
       "circle-color": "#58c04d",
-      "circle-radius": 12,
+      "circle-radius": 11.36,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

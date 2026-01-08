@@ -16,7 +16,7 @@ export const neighborhoodEnergyCenters = {
 
   paint: {
       "circle-color": "#f3c613",
-      "circle-radius": 7.498125,
+      "circle-radius": 7.1,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

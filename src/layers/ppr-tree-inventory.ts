@@ -12,11 +12,12 @@ export const pprTreeInventory = {
   title: "PPR Tree Inventory",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/ppr_tree_inventory_2025/FeatureServer/0",
+  minZoom: 17.07,
   opacity: 1,
 
   paint: {
       "circle-color": "#4c7300",
-      "circle-radius": 6.001875000000001,
+      "circle-radius": 5.68,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -33,7 +34,11 @@ export const pprTreeInventory = {
       "fields": [
           {
               "field": "tree_dbh",
-              "label": "Diameter at Breast Height (DBH)"
+              "label": "Diameter at Breast Height (DBH)",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           },
           {
               "field": "year",

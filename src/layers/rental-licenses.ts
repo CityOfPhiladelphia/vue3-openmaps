@@ -13,11 +13,12 @@ export const rentalLicenses = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/BUSINESS_LICENSES/FeatureServer/0",
   where: "revenuecode = '3202'",
+  minZoom: 15.27,
   opacity: 1,
 
   paint: {
       "circle-color": "#df73ff",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -62,19 +63,35 @@ export const rentalLicenses = {
           },
           {
               "field": "initialissuedate",
-              "label": "Initial Issue Date"
+              "label": "Initial Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "mostrecentissuedate",
-              "label": "Most Recent Issue Date"
+              "label": "Most Recent Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "expirationdate",
-              "label": "Expiration Date"
+              "label": "Expiration Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "inactivedate",
-              "label": "Inactive Date"
+              "label": "Inactive Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "licensestatus",
@@ -82,7 +99,11 @@ export const rentalLicenses = {
           },
           {
               "field": "numberofunits",
-              "label": "Number of Units"
+              "label": "Number of Units",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "legalfirstname",

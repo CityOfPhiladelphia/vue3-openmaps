@@ -84,7 +84,11 @@ export const commercialCorridors = {
       "fields": [
           {
               "field": "corridor_type",
-              "label": "Corridor Type"
+              "label": "Corridor Type",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "p_dist",
@@ -92,11 +96,19 @@ export const commercialCorridors = {
           },
           {
               "field": "stage",
-              "label": "Stage"
+              "label": "Stage",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "comm_count",
-              "label": "Total Count of Commercial Spaces"
+              "label": "Total Count of Commercial Spaces",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "gla",

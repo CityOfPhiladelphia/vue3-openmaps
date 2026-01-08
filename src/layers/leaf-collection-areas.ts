@@ -5,7 +5,7 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Leaf_Collection_Areas/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const leafCollectionAreas = {
   id: "leaf-collection-areas",
@@ -19,6 +19,11 @@ export const leafCollectionAreas = {
       "fill-opacity": 0.8,
       "fill-outline-color": "#666666"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#666666",
+      "line-width": 2.25
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {

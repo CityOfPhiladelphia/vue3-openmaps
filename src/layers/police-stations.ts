@@ -16,7 +16,7 @@ export const policeStations = {
 
   paint: {
       "circle-color": "#005ce6",
-      "circle-radius": 9,
+      "circle-radius": 8.52,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

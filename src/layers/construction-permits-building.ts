@@ -13,11 +13,12 @@ export const constructionPermitsBuilding = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/PERMITS/FeatureServer/0",
   where: "(permitissuedate BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP) AND (permittype = 'BP_ADDITON' OR permittype = 'L_FFORM' OR permittype = 'BP_NEWCNST' OR permittype = 'BP_ADMINST' OR permittype = 'BP_ALTER' OR permittype = 'BP_DEMO' OR permittype = 'BP_FIRESUP' OR permittype = 'BP_SIGN' OR permittype = 'BUILDING' OR permittype = 'RESIDENTIAL BUILDING' OR permittype = 'DEMOLITION' OR permittype = 'SITE / UTILITY PERMIT')",
+  minZoom: 15.29,
   opacity: 1,
 
   paint: {
       "circle-color": "#ffaa00",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -66,7 +67,11 @@ export const constructionPermitsBuilding = {
           },
           {
               "field": "permitissuedate",
-              "label": "Issue Date"
+              "label": "Issue Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "status",

@@ -12,6 +12,7 @@ export const vacantBuildingIndicators = {
   title: "Vacant Building Indicators",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Vacant_Indicators_Bldg/FeatureServer/0",
+  minZoom: 13.45,
   opacity: 0.8,
 
   paint: {

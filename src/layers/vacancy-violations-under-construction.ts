@@ -13,11 +13,12 @@ export const vacancyViolationsUnderConstruction = {
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/VIOLATIONS/FeatureServer/0",
   where: "(casecreateddate BETWEEN CURRENT_TIMESTAMP - 365 AND CURRENT_TIMESTAMP) AND (violationcode LIKE 'PM-308%' OR violationcode LIKE 'PM-307%' OR violationcode LIKE 'PM-306%' OR violationcode LIKE 'PM-102.4/2%' OR violationcode LIKE 'PM-102.4/1%' OR violationcode LIKE 'PM-102.4/4%')",
+  minZoom: 10.76,
   opacity: 1,
 
   paint: {
       "circle-color": "#a80000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 
@@ -42,7 +43,11 @@ export const vacancyViolationsUnderConstruction = {
           },
           {
               "field": "casecreateddate",
-              "label": "Case Created Date"
+              "label": "Case Created Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "casetype",
@@ -62,7 +67,11 @@ export const vacancyViolationsUnderConstruction = {
           },
           {
               "field": "violationdate",
-              "label": "Violation Date"
+              "label": "Violation Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationcode",
@@ -78,7 +87,11 @@ export const vacancyViolationsUnderConstruction = {
           },
           {
               "field": "violationresolutiondate",
-              "label": "Violation Resolution Date"
+              "label": "Violation Resolution Date",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "violationresolutioncode",
@@ -86,7 +99,11 @@ export const vacancyViolationsUnderConstruction = {
           },
           {
               "field": "mostrecentinvestigation",
-              "label": "MOSTRECENTINVESTIGATION"
+              "label": "MOSTRECENTINVESTIGATION",
+              "format": {
+                  "dateFormat": "shortDateShortTime",
+                  "digitSeparator": false
+              }
           },
           {
               "field": "publicnov",
@@ -122,11 +139,19 @@ export const vacancyViolationsUnderConstruction = {
           },
           {
               "field": "geocode_x",
-              "label": "GEOCODE_X"
+              "label": "GEOCODE_X",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           },
           {
               "field": "geocode_y",
-              "label": "GEOCODE_Y"
+              "label": "GEOCODE_Y",
+              "format": {
+                  "digitSeparator": false,
+                  "places": 6
+              }
           }
       ]
   },

@@ -27,23 +27,43 @@ export const tobaccoRetailerDensityCaps = {
           },
           {
               "field": "totalretailers",
-              "label": "Total Retailers"
+              "label": "Total Retailers",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "daytimepop",
-              "label": "Daytime Population"
+              "label": "Daytime Population",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "retailersper1000dp",
-              "label": "Retailers per 1000DP"
+              "label": "Retailers per 1000DP",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 2
+              }
           },
           {
               "field": "maxretailers",
-              "label": "Max Retailers"
+              "label": "Max Retailers",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           },
           {
               "field": "remainingslots",
-              "label": "Remaining Slots"
+              "label": "Remaining Slots",
+              "format": {
+                  "digitSeparator": true,
+                  "places": 0
+              }
           }
       ]
   },

@@ -12,11 +12,12 @@ export const wireWastebaskets = {
   title: "Wire Wastebaskets",
   type: "circle" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/WasteBaskets_Wire/FeatureServer/0",
+  minZoom: 11.36,
   opacity: 1,
 
   paint: {
       "circle-color": "#a80000",
-      "circle-radius": 7.875,
+      "circle-radius": 7.46,
       "circle-opacity": 1
   } as CircleLayerSpecification["paint"],
 

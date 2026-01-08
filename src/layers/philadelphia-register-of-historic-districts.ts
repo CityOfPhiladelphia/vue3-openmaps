@@ -5,13 +5,14 @@
  * Source: https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/HistoricDistricts_Local/FeatureServer/0
  */
 
-import type { FillLayerSpecification } from "maplibre-gl";
+import type { FillLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
 export const philadelphiaRegisterOfHistoricDistricts = {
   id: "philadelphia-register-of-historic-districts",
   title: "Philadelphia Register of Historic Districts",
   type: "fill" as const,
   url: "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/HistoricDistricts_Local/FeatureServer/0",
+  minZoom: 8.87,
   opacity: 1,
 
   paint: {
@@ -19,6 +20,11 @@ export const philadelphiaRegisterOfHistoricDistricts = {
       "fill-opacity": 1,
       "fill-outline-color": "#666666"
   } as FillLayerSpecification["paint"],
+
+  outlinePaint: {
+      "line-color": "#666666",
+      "line-width": 2.25
+  } as LineLayerSpecification["paint"],
 
   legend: [
       {
