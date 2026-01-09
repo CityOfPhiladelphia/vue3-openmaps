@@ -358,7 +358,7 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
       legend.push({
-        type: 'fill',
+        type: 'fill' as const,
         color: esriColorToCSS(info.symbol?.color),
         label: info.label || String(info.value),
       });
@@ -395,7 +395,7 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
       legend.push({
-        type: 'line',
+        type: 'line' as const,
         color: esriColorToCSS(info.symbol?.color),
         width: info.symbol?.width || 1,
         label: info.label || String(info.value),
@@ -417,7 +417,7 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
       legend.push({
-        type: 'circle',
+        type: 'circle' as const,
         color: esriColorToCSS(info.symbol?.color),
         label: info.label || String(info.value),
       });
@@ -480,7 +480,7 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       }
 
       legend.push({
-        type: 'fill',
+        type: 'fill' as const,
         color: esriColorToCSS(info.symbol?.color),
         label: info.label || `${info.classMaxValue}`,
       });

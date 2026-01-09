@@ -120,7 +120,7 @@ async function loadStaticConfigs(): Promise<LayerConfig[]> {
 
   console.log(`[LayerConfigService] Successfully loaded ${layers.length} layer configs`);
 
-  return layers;
+  return layers as LayerConfig[];
 }
 
 /**
