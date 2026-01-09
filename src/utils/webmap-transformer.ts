@@ -108,9 +108,13 @@ interface RendererResult {
  * esriColorToCSS([255, 0, 0, 128]) // Returns "rgba(255, 0, 0, 0.50)"
  */
 export function esriColorToCSS(color: number[] | null | undefined): string {
-  if (!color || !Array.isArray(color)) return '#888888';
+  if (!color || !Array.isArray(color) || color.length < 3) return '#888888';
 
-  const [r, g, b, a = 255] = color;
+  const r = color[0]!;
+  const g = color[1]!;
+  const b = color[2]!;
+  const a = color[3] ?? 255;
+
   const alpha = a / 255;
 
   if (alpha === 1) {
@@ -467,11 +471,11 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
     colorStep.push(esriColorToCSS(classBreakInfos[0]?.symbol?.color));
 
     for (let i = 0; i < classBreakInfos.length; i++) {
-      const info = classBreakInfos[i];
+      const info = classBreakInfos[i]!;
 
       if (i > 0) {
         // Add break value and color
-        colorStep.push(classBreakInfos[i - 1].classMaxValue);
+        colorStep.push(classBreakInfos[i - 1]!.classMaxValue);
         colorStep.push(esriColorToCSS(info.symbol?.color));
       }
 
