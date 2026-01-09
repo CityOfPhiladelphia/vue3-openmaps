@@ -65,9 +65,9 @@ This phase adds the ability to fetch and transform the Esri WebMap JSON at runti
 - [x] Ensure build process includes this env var for production builds
 
 ### WebMap ID Configuration
-- [ ] Define `WEBMAP_ID` constant (value: `'1596df70df0349e293ceec46a06ccc50'`) in the layer config service or a config file
-- [ ] Build the fetch URL from the ID using pattern: `https://www.arcgis.com/sharing/rest/content/items/${WEBMAP_ID}/data?f=json`
-- [ ] Keep the ID near where it's used (in `layerConfigService.ts` or a `src/config.ts` file) - not hidden in env vars since it's public
+- [x] Define `WEBMAP_ID` constant (value: `'1596df70df0349e293ceec46a06ccc50'`) in the layer config service or a config file
+- [x] Build the fetch URL from the ID using pattern: `https://www.arcgis.com/sharing/rest/content/items/${WEBMAP_ID}/data?f=json`
+- [x] Keep the ID near where it's used (in `layerConfigService.ts` or a `src/config.ts` file) - not hidden in env vars since it's public
 
 ### Extract Transformation Logic into Shared Module
 - [ ] Create new file `src/utils/webmap-transformer.ts` (or similar location)
