@@ -99,9 +99,9 @@ This phase adds the ability to fetch and transform the Esri WebMap JSON at runti
 - [x] Ensure map doesn't try to render layers before configs are loaded
 
 ### Type Safety
-- [ ] Create TypeScript interface `EsriWebMap` for the raw Esri JSON structure (or use `any` with runtime validation)
-- [ ] Ensure `LayerConfig` interface is shared between static files and dynamic transformer
-- [ ] Add JSDoc comments to transformer functions explaining input/output
+- [x] Create TypeScript interface `EsriWebMap` for the raw Esri JSON structure (or use `any` with runtime validation)
+- [x] Ensure `LayerConfig` interface is shared between static files and dynamic transformer
+- [x] Add JSDoc comments to transformer functions explaining input/output
 
 ### Testing & Validation
 - [ ] Test with `VITE_LAYER_MODE=static` - app should work exactly as before using pre-generated files

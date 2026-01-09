@@ -96,8 +96,16 @@ interface RendererResult {
 // ============================================================================
 
 /**
- * Convert Esri RGBA array [r, g, b, a] to CSS rgba() or hex
- * Esri alpha is 0-255, CSS is 0-1
+ * Convert Esri RGBA array to CSS color string
+ *
+ * Transforms Esri's RGBA color format [r, g, b, a] to CSS rgba() or hex.
+ * Esri uses 0-255 for alpha, CSS uses 0-1.
+ *
+ * @param color - Esri RGBA array [red, green, blue, alpha] where each value is 0-255
+ * @returns CSS color string (hex for opaque colors, rgba() for transparent)
+ * @example
+ * esriColorToCSS([255, 0, 0, 255]) // Returns "#ff0000"
+ * esriColorToCSS([255, 0, 0, 128]) // Returns "rgba(255, 0, 0, 0.50)"
  */
 export function esriColorToCSS(color: number[] | null | undefined): string {
   if (!color || !Array.isArray(color)) return '#888888';
@@ -145,9 +153,19 @@ function scaleToZoom(scale: number): number | null {
 
 /**
  * Convert Esri minScale/maxScale to MapLibre minzoom/maxzoom
+ *
  * Note: The relationship is inverted!
- * - Esri minScale (large) → MapLibre minzoom (small zoom number = zoomed out)
- * - Esri maxScale (small) → MapLibre maxzoom (large zoom number = zoomed in)
+ * - Esri minScale (large number) = zoomed out limit → MapLibre minzoom (small zoom level)
+ * - Esri maxScale (small number) = zoomed in limit → MapLibre maxzoom (large zoom level)
+ *
+ * Uses the formula: zoom ≈ log2(559082264 / scale)
+ * where 559082264 is the approximate scale at zoom level 0 at the equator.
+ *
+ * @param minScale - Esri minScale (layer disappears when zoomed out beyond this)
+ * @param maxScale - Esri maxScale (layer disappears when zoomed in beyond this)
+ * @returns Object with optional minZoom and maxZoom properties for MapLibre
+ * @example
+ * convertScaleToZoom(100000, 5000) // Returns { minZoom: 12.45, maxZoom: 17.11 }
  */
 export function convertScaleToZoom(minScale?: number, maxScale?: number): { minZoom?: number; maxZoom?: number } {
   const result: { minZoom?: number; maxZoom?: number } = {};
@@ -488,8 +506,24 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
 }
 
 /**
- * Main renderer conversion function
- * Transforms Esri renderer JSON to MapLibre paint styles
+ * Transform Esri renderer to MapLibre paint styles
+ *
+ * Main renderer conversion function that handles all Esri renderer types:
+ * - Simple: Single symbol for all features
+ * - UniqueValue: Different symbols based on attribute field values
+ * - ClassBreaks: Graduated colors based on numeric ranges
+ *
+ * Converts Esri symbols and colors to MapLibre paint properties, generates
+ * legend entries, and handles outline styling for fill layers.
+ *
+ * @param drawingInfo - Esri drawing info containing renderer configuration
+ * @param layerOpacity - Layer opacity (0-1), defaults to 1
+ * @returns Object containing paint styles, legend items, geometry type, and optional outline paint
+ * @example
+ * const result = transformEsriRenderer(layer.drawingInfo, 0.8);
+ * // result.paint = { 'fill-color': '#ff0000', 'fill-opacity': 0.8 }
+ * // result.legend = [{ type: 'fill', color: '#ff0000', label: 'Feature' }]
+ * // result.geomType = 'fill'
  */
 export function transformEsriRenderer(drawingInfo?: EsriDrawingInfo, layerOpacity?: number): RendererResult {
   if (!drawingInfo?.renderer) {
@@ -516,7 +550,17 @@ export function transformEsriRenderer(drawingInfo?: EsriDrawingInfo, layerOpacit
 // ============================================================================
 
 /**
- * Convert Esri popupInfo to our popup config format
+ * Transform Esri popupInfo to application popup configuration
+ *
+ * Converts Esri's popupInfo structure to the app's PopupConfig format.
+ * Filters to visible fields only and preserves field formatting options
+ * (date formats, number formatting, etc.).
+ *
+ * @param popupInfo - Esri popup info from layer definition
+ * @returns PopupConfig object with title and visible fields, or null if no popup info
+ * @example
+ * const popup = transformPopupConfig(layer.popupInfo);
+ * // Returns: { title: "{NAME}", fields: [{ field: "name", label: "Name" }] }
  */
 export function transformPopupConfig(popupInfo?: EsriPopupInfo): PopupConfig | null {
   if (!popupInfo) return null;
@@ -569,8 +613,18 @@ export function transformPopupConfig(popupInfo?: EsriPopupInfo): PopupConfig | n
 }
 
 /**
- * Generate legend entries from renderer
- * This is the same as the legend returned by transformEsriRenderer
+ * Generate legend entries from Esri renderer
+ *
+ * Convenience function that extracts just the legend items from the renderer
+ * transformation. This is the same as the legend array returned by
+ * transformEsriRenderer().
+ *
+ * @param drawingInfo - Esri drawing info containing renderer configuration
+ * @param layerOpacity - Layer opacity (0-1), defaults to 1
+ * @returns Array of legend items with type, color, and label
+ * @example
+ * const legend = transformLegendConfig(layer.drawingInfo);
+ * // Returns: [{ type: 'fill', color: '#ff0000', label: 'Parks' }]
  */
 export function transformLegendConfig(drawingInfo?: EsriDrawingInfo, layerOpacity?: number): LegendItem[] {
   const result = transformEsriRenderer(drawingInfo, layerOpacity);
@@ -578,7 +632,16 @@ export function transformLegendConfig(drawingInfo?: EsriDrawingInfo, layerOpacit
 }
 
 /**
- * Extract definitionExpression as where clause
+ * Extract Esri definitionExpression as where clause
+ *
+ * Simple extraction of the definitionExpression from Esri layer definition.
+ * This SQL-like expression filters which features are displayed on the map.
+ *
+ * @param layerDefinition - Esri layer definition object
+ * @returns Definition expression string, or undefined if not present
+ * @example
+ * const where = buildWhereClause(layer.layerDefinition);
+ * // Returns: "STATUS = 'Active' AND YEAR >= 2020"
  */
 export function buildWhereClause(layerDefinition?: { definitionExpression?: string }): string | undefined {
   return layerDefinition?.definitionExpression;
