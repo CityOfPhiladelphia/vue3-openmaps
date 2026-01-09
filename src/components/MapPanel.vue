@@ -150,7 +150,7 @@ function onMoveEnd(data: { center: { lng: number; lat: number }; zoom: number; b
   fetchSpatialLayers(data.bounds);
 }
 
-// Handle map load event - get initial bounds
+// Handle map load event - get initial bounds and zoom
 function onMapLoad(map: any) {
   const bounds = map.getBounds();
   currentBounds.value = {
@@ -159,6 +159,11 @@ function onMapLoad(map: any) {
     east: bounds.getEast(),
     north: bounds.getNorth(),
   };
+
+  // Emit the initial zoom level so layer availability is correctly calculated
+  const zoom = map.getZoom();
+  emit("zoom", zoom);
+
   // Fetch any spatial layers that are already visible
   fetchSpatialLayers(currentBounds.value);
 }
