@@ -13,7 +13,8 @@ import { transformWebMapToLayerConfigs, type EsriWebMap } from '@/utils/webmap-t
  * The Esri WebMap ID for the OpenMaps application
  * This is a public ID used to fetch the layer configuration from ArcGIS Online
  */
-export const WEBMAP_ID = '1596df70df0349e293ceec46a06ccc50';
+// export const WEBMAP_ID = '1596df70df0349e293ceec46a06ccc50';
+export const WEBMAP_ID = '376af635c84643cd816a8c5d017a53aa';
 
 /**
  * Builds the fetch URL for the Esri WebMap JSON
