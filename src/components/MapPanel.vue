@@ -87,7 +87,7 @@ const paginatedData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 const PAGINATED_LAYER_IDS = ["bike-network"];
 
 // Layers that use spatial filtering (query by map bounds)
-const SPATIAL_LAYER_IDS = ["zoning-base-districts"];
+const SPATIAL_LAYER_IDS = ["zoning-base-districts", "complete-street-types", "land-use"];
 
 // Store for spatially-filtered data (keyed by layer id)
 const spatialData = ref<Record<string, GeoJSON.FeatureCollection>>({});

@@ -259,9 +259,9 @@ function convertSimpleRenderer(renderer: EsriRenderer, layerOpacity?: number): R
   let outlinePaint: Record<string, unknown> | null = null;
 
   if (geomType === 'fill' && symbol) {
-    // Check if fill color has alpha = 0 (fully transparent)
-    const fillAlpha = symbol.color?.[3] ?? 255;
-    // Use transparent color when alpha is 0 to ensure no fill is rendered
+    // Check if fill color is null (no fill) or has alpha = 0 (fully transparent)
+    const fillAlpha = symbol.color === null ? 0 : (symbol.color?.[3] ?? 255);
+    // Use transparent color when alpha is 0 or color is null to ensure no fill is rendered
     const fillColor = fillAlpha === 0 ? 'rgba(0, 0, 0, 0)' : esriColorToCSS(symbol.color);
 
     paint = {
@@ -346,8 +346,33 @@ function convertSimpleRenderer(renderer: EsriRenderer, layerOpacity?: number): R
 
 /**
  * Convert Esri UniqueValue renderer to MapLibre paint with match expression
+ *
+ * This function handles unique value (categorical) symbology where different field values
+ * get different colors/symbols. It's used for layers like Land Use, Zoning, Commercial Corridors, etc.
+ *
+ * @param renderer The Esri unique value renderer configuration
+ * @param layerOpacity Optional opacity override (0-1)
+ * @param customLabelMap Optional map of field values to custom labels
+ *
+ * The customLabelMap parameter enables a hybrid approach:
+ * - Use renderer from one source (e.g., service) for field/colors
+ * - Use labels from another source (e.g., service description) for human-readable names
+ *
+ * Label precedence (first match wins):
+ * 1. customLabelMap.get(value) - Custom label from service description
+ * 2. info.label - Label from renderer's uniqueValueInfos
+ * 3. String(value) - The raw field value as fallback
+ *
+ * Example for Land Use with c_dig2 field:
+ * - Renderer has: { value: "11", label: "11", symbol: {...} }
+ * - customLabelMap has: "11" → "Residential Low Density"
+ * - Result legend: { label: "Residential Low Density", color: "...", type: "fill" }
  */
-function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: number): RendererResult {
+function convertUniqueValueRenderer(
+  renderer: EsriRenderer,
+  layerOpacity?: number,
+  customLabelMap?: Map<string, string>
+): RendererResult {
   const field = renderer.field1!;
   const uniqueValueInfos = renderer.uniqueValueInfos || [];
   const defaultSymbol = renderer.defaultSymbol;
@@ -372,10 +397,27 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(coerceMatchValue(info.value));
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
+      // LABEL MERGING: Hybrid approach to get the best label available
+      // This enables using service renderer (correct field/colors) with custom labels (from description)
+      //
+      // Precedence chain:
+      // 1. customLabel from customLabelMap (e.g., "11 Residential Low Density" from service description)
+      // 2. info.label from renderer (e.g., "11" or "Residential" from uniqueValueInfos)
+      // 3. valueStr as last resort (e.g., "11" - the raw field value)
+      //
+      // Example for Land Use:
+      // - valueStr = "11"
+      // - customLabelMap.get("11") = "Residential Low Density" (from service description)
+      // - info.label = "11" (from service renderer's uniqueValueInfos)
+      // - Result: label = "Residential Low Density" (customLabel wins)
+      const valueStr = String(info.value);
+      const customLabel = customLabelMap?.get(valueStr);
+      const label = customLabel || info.label || valueStr;
+
       legend.push({
         type: 'fill' as const,
         color: esriColorToCSS(info.symbol?.color),
-        label: info.label || String(info.value),
+        label: label,
       });
     }
 
@@ -410,11 +452,17 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(coerceMatchValue(info.value));
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
+      // LABEL MERGING: Same hybrid approach as fill layers (see comment above in fill section)
+      // Precedence: customLabelMap → renderer label → raw value
+      const valueStr = String(info.value);
+      const customLabel = customLabelMap?.get(valueStr);
+      const label = customLabel || info.label || valueStr;
+
       legend.push({
         type: 'line' as const,
         color: esriColorToCSS(info.symbol?.color),
         width: info.symbol?.width || 1,
-        label: info.label || String(info.value),
+        label: label,
       });
     }
 
@@ -433,10 +481,16 @@ function convertUniqueValueRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       colorMatch.push(coerceMatchValue(info.value));
       colorMatch.push(esriColorToCSS(info.symbol?.color));
 
+      // LABEL MERGING: Same hybrid approach as fill layers (see comment above in fill section)
+      // Precedence: customLabelMap → renderer label → raw value
+      const valueStr = String(info.value);
+      const customLabel = customLabelMap?.get(valueStr);
+      const label = customLabel || info.label || valueStr;
+
       legend.push({
         type: 'circle' as const,
         color: esriColorToCSS(info.symbol?.color),
-        label: info.label || String(info.value),
+        label: label,
       });
     }
 
@@ -537,16 +591,39 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
  * Converts Esri symbols and colors to MapLibre paint properties, generates
  * legend entries, and handles outline styling for fill layers.
  *
+ * The customLabelMap parameter (optional, only for unique value renderers):
+ * Enables hybrid approach where you can use renderer from one source (e.g., service)
+ * for field/colors/symbols, but labels from another source (e.g., service description)
+ * for human-readable names. This solves cases where:
+ * - Renderer has correct colors but only numeric labels (e.g., "11", "22")
+ * - Description field has detailed labels (e.g., "11 Residential Low Density")
+ * - Example: Land Use layer uses service renderer (c_dig2 field, correct colors) with
+ *   parsed description labels ("Residential Low Density" instead of just "11")
+ *
  * @param drawingInfo - Esri drawing info containing renderer configuration
  * @param layerOpacity - Layer opacity (0-1), defaults to 1
+ * @param customLabelMap - Optional map of field values to custom labels (unique value renderers only)
  * @returns Object containing paint styles, legend items, geometry type, and optional outline paint
- * @example
+ *
+ * @example Basic usage
  * const result = transformEsriRenderer(layer.drawingInfo, 0.8);
  * // result.paint = { 'fill-color': '#ff0000', 'fill-opacity': 0.8 }
  * // result.legend = [{ type: 'fill', color: '#ff0000', label: 'Feature' }]
  * // result.geomType = 'fill'
+ *
+ * @example With custom labels (hybrid approach for unique value renderers)
+ * const labelMap = new Map([
+ *   ['11', 'Residential Low Density'],
+ *   ['22', 'Commercial Business/Professional']
+ * ]);
+ * const result = transformEsriRenderer(serviceDrawingInfo, 1.0, labelMap);
+ * // result uses renderer's field/colors but labelMap's descriptive labels
  */
-export function transformEsriRenderer(drawingInfo?: EsriDrawingInfo, layerOpacity?: number): RendererResult {
+export function transformEsriRenderer(
+  drawingInfo?: EsriDrawingInfo,
+  layerOpacity?: number,
+  customLabelMap?: Map<string, string>
+): RendererResult {
   if (!drawingInfo?.renderer) {
     console.warn('[Transformer] No renderer found in drawingInfo - layer will use service default (not available in WebMap)');
     // Return empty paint - the layer will need to fetch service metadata for its default renderer
@@ -560,7 +637,7 @@ export function transformEsriRenderer(drawingInfo?: EsriDrawingInfo, layerOpacit
     case 'simple':
       return convertSimpleRenderer(renderer, layerOpacity);
     case 'uniqueValue':
-      return convertUniqueValueRenderer(renderer, layerOpacity);
+      return convertUniqueValueRenderer(renderer, layerOpacity, customLabelMap);
     case 'classBreaks':
       return convertClassBreaksRenderer(renderer, layerOpacity);
     default:
@@ -645,13 +722,18 @@ export function transformPopupConfig(popupInfo?: EsriPopupInfo): PopupConfig | n
  *
  * @param drawingInfo - Esri drawing info containing renderer configuration
  * @param layerOpacity - Layer opacity (0-1), defaults to 1
+ * @param customLabelMap - Optional map of field values to custom labels
  * @returns Array of legend items with type, color, and label
  * @example
  * const legend = transformLegendConfig(layer.drawingInfo);
  * // Returns: [{ type: 'fill', color: '#ff0000', label: 'Parks' }]
  */
-export function transformLegendConfig(drawingInfo?: EsriDrawingInfo, layerOpacity?: number): LegendItem[] {
-  const result = transformEsriRenderer(drawingInfo, layerOpacity);
+export function transformLegendConfig(
+  drawingInfo?: EsriDrawingInfo,
+  layerOpacity?: number,
+  customLabelMap?: Map<string, string>
+): LegendItem[] {
+  const result = transformEsriRenderer(drawingInfo, layerOpacity, customLabelMap);
   return result.legend;
 }
 
@@ -704,12 +786,100 @@ function getDisplayTitle(title: string): string {
 // ============================================================================
 
 /**
- * Fetch drawing info from a feature service when not provided in WebMap
+ * Parse service description to extract code-to-label mappings
  *
- * @param serviceUrl The feature service URL
- * @returns Promise resolving to the service's drawingInfo, or null if not available
+ * Some Esri services have human-readable labels in their description field that don't
+ * appear in the renderer's uniqueValueInfos. This is particularly common when a WebMap
+ * uses the wrong field for symbology, but the service's description contains the correct
+ * detailed labels for a different field.
+ *
+ * Example use case: Land Use layer
+ * - WebMap uses c_dig1 (8 categories, wrong field)
+ * - Service renderer uses c_dig2 (16 categories, correct field)
+ * - Service description has detailed labels: "11 Residential Low Density", "22 Commercial Business/Professional"
+ * - Without parsing description, we'd only get numeric labels like "11", "22"
+ * - By parsing description, we get the full human-readable labels
+ *
+ * Format expected in description field:
+ * ```
+ * 11 Residential Low Density
+ * 12 Residential Medium
+ * 13 Residential High
+ * 21 Commercial Consumer
+ * ...
+ * ```
+ *
+ * The pattern matches 1-3 digit codes followed by a space and label text.
+ * This works for hierarchical coding systems (1-digit, 2-digit, 3-digit categories).
+ *
+ * @param description The service description field (typically from serviceData.description)
+ * @returns Map of code values (as strings) to descriptive labels
  */
-async function fetchServiceDrawingInfo(serviceUrl: string): Promise<EsriDrawingInfo | null> {
+function parseServiceDescription(description: string | undefined): Map<string, string> {
+  const labelMap = new Map<string, string>();
+
+  if (!description) {
+    return labelMap;
+  }
+
+  // Split by newlines and parse each line
+  const lines = description.split('\n');
+
+  // Match lines like "11 Residential Low Density" or "3 Commercial" (1-3 digits, space, label)
+  const codePattern = /^(\d{1,3})\s+(.+)$/;
+
+  for (const line of lines) {
+    const match = line.trim().match(codePattern);
+    if (match) {
+      const [, code, label] = match;
+      // Store as string → string mapping (codes are always treated as strings for MapLibre match expressions)
+      labelMap.set(code, label.trim());
+    }
+  }
+
+  return labelMap;
+}
+
+/**
+ * Fetch drawing info and description from a feature service
+ *
+ * This function is called in two scenarios:
+ *
+ * 1. **Missing renderer**: When a layer has NO renderer in the WebMap (e.g., City Limits)
+ *    - WebMap's layerDefinition.drawingInfo.renderer is undefined
+ *    - Need to fetch the service's default renderer to know how to style the layer
+ *
+ * 2. **Incorrect renderer**: When a layer is in USE_SERVICE_RENDERER array (e.g., Land Use)
+ *    - WebMap has a renderer but it uses the wrong field or has wrong symbology
+ *    - Service's default renderer has the correct field and colors
+ *    - Service's description may have human-readable labels not in the renderer
+ *
+ * The function returns BOTH drawingInfo and description because:
+ * - drawingInfo provides the renderer (field, colors, uniqueValueInfos)
+ * - description may contain additional human-readable labels (e.g., "11 Residential Low Density")
+ *   that aren't in the renderer's uniqueValueInfos (which might just say "11")
+ *
+ * Example return for Land Use service:
+ * ```json
+ * {
+ *   "drawingInfo": {
+ *     "renderer": {
+ *       "type": "uniqueValue",
+ *       "field1": "c_dig2",
+ *       "uniqueValueInfos": [
+ *         { "value": "11", "label": "11", "symbol": {...} },
+ *         { "value": "22", "label": "22", "symbol": {...} }
+ *       ]
+ *     }
+ *   },
+ *   "description": "11 Residential Low Density\n12 Residential Medium\n22 Commercial Business/Professional\n..."
+ * }
+ * ```
+ *
+ * @param serviceUrl The feature service URL (e.g., "https://services.arcgis.com/.../FeatureServer/0")
+ * @returns Promise resolving to object with drawingInfo and optional description, or null if fetch fails
+ */
+async function fetchServiceDrawingInfo(serviceUrl: string): Promise<{ drawingInfo: EsriDrawingInfo; description?: string } | null> {
   try {
     console.log(`[Transformer] Fetching service metadata from: ${serviceUrl}`);
     const response = await fetch(`${serviceUrl}?f=json`);
@@ -720,7 +890,15 @@ async function fetchServiceDrawingInfo(serviceUrl: string): Promise<EsriDrawingI
     }
 
     const serviceData = await response.json();
-    return serviceData.drawingInfo || null;
+    if (!serviceData.drawingInfo) {
+      return null;
+    }
+
+    // Return both drawingInfo (for renderer) and description (for custom labels)
+    return {
+      drawingInfo: serviceData.drawingInfo,
+      description: serviceData.description
+    };
   } catch (error) {
     console.error(`[Transformer] Error fetching service metadata:`, error);
     return null;
@@ -745,6 +923,34 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
   const operationalLayers = webMapJson.operationalLayers || [];
   const configs: LayerConfig[] = [];
 
+  // USE_SERVICE_RENDERER: Layers where WebMap renderer is incorrect
+  //
+  // Add layer titles to this array when the WebMap has the wrong symbology and you want
+  // to use the service's default renderer instead. This is a manual override mechanism.
+  //
+  // Why this is needed:
+  // - Sometimes a WebMap is configured with the wrong field for symbology
+  // - Or the WebMap uses a simplified/incorrect color scheme
+  // - The FeatureServer's default renderer has the correct configuration
+  //
+  // Example: 'Zoning and Planning_Land Use'
+  // - WebMap uses field: c_dig1 (8 categories) - WRONG
+  // - Service uses field: c_dig2 (16 categories) - CORRECT
+  // - Service description has labels: "11 Residential Low Density", etc.
+  // - By adding to this array, we fetch service renderer AND parse description for labels
+  //
+  // This is different from layers with NO renderer in WebMap (like City Limits):
+  // - Those are automatically detected and fetch from service (no need to add here)
+  // - This array is only for layers that HAVE a renderer but it's WRONG
+  //
+  // What happens when a layer is in this array:
+  // 1. Ignore WebMap's renderer completely
+  // 2. Fetch service metadata (renderer + description)
+  // 3. Parse description for custom labels (e.g., "11 Residential Low Density")
+  // 4. Merge service renderer (field/colors) with parsed labels
+  // 5. Result: correct field, correct colors, human-readable labels
+  const USE_SERVICE_RENDERER: string[] = ['Zoning and Planning_Land Use'];
+
   console.log('🔄 [Transformer] ===== STARTING FRESH TRANSFORMATION =====');
   console.log('[Transformer] Starting transformation of', operationalLayers.length, 'layers');
 
@@ -761,17 +967,57 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
     try {
       // Get drawingInfo - either from WebMap or fetch from service
       let drawingInfo = layer.layerDefinition?.drawingInfo;
+      let serviceLabelMap: Map<string, string> | undefined;
 
-      // If no drawingInfo in WebMap, fetch it from the service
-      if (!drawingInfo?.renderer && layer.url) {
-        console.log(`[Transformer] Layer "${layer.title}" has no renderer in WebMap, fetching from service...`);
-        drawingInfo = await fetchServiceDrawingInfo(layer.url);
+      // HYBRID APPROACH: Use service renderer + description when needed
+      // This handles two scenarios:
+      //
+      // Scenario 1: Missing renderer in WebMap (e.g., City Limits)
+      //   - WebMap has no drawingInfo.renderer at all
+      //   - Need to fetch service's default renderer to know how to style the layer
+      //
+      // Scenario 2: Incorrect renderer in WebMap (layers in USE_SERVICE_RENDERER array)
+      //   - WebMap has a renderer but it's wrong (wrong field, wrong colors)
+      //   - Service has the correct renderer
+      //   - Service description may have human-readable labels that aren't in the renderer
+      //   - Example: Land Use uses c_dig1 in WebMap (wrong), c_dig2 in service (correct)
+      //
+      // When fetching from service, we get:
+      //   - drawingInfo.renderer (correct field, colors, symbols)
+      //   - description (human-readable labels like "11 Residential Low Density")
+      //
+      // The parsed labels from description override the renderer's labels, creating a hybrid:
+      //   - Field and colors from service renderer
+      //   - Labels from service description (if available) or renderer labels (fallback)
+      if ((!drawingInfo?.renderer && layer.url) || USE_SERVICE_RENDERER.includes(layer.title)) {
+        if (USE_SERVICE_RENDERER.includes(layer.title)) {
+          console.log(`[Transformer] Layer "${layer.title}" configured to use service renderer instead of WebMap renderer`);
+        } else {
+          console.log(`[Transformer] Layer "${layer.title}" has no renderer in WebMap, fetching from service...`);
+        }
+
+        const serviceData = await fetchServiceDrawingInfo(layer.url);
+        if (serviceData) {
+          drawingInfo = serviceData.drawingInfo;
+
+          // Parse description for custom labels (if description exists and is parseable)
+          // This allows us to merge service renderer (field/colors) with custom labels (from description)
+          if (serviceData.description) {
+            serviceLabelMap = parseServiceDescription(serviceData.description);
+            if (serviceLabelMap.size > 0) {
+              console.log(`[Transformer] Parsed ${serviceLabelMap.size} custom labels from service description`);
+            }
+          }
+        }
       }
 
       // Transform renderer to get paint styles and legend
+      // Pass serviceLabelMap to merge custom labels with renderer
+      // The customLabelMap takes precedence: customLabel || rendererLabel || value
       const { paint, legend, geomType, outlinePaint } = transformEsriRenderer(
         drawingInfo,
-        layer.opacity
+        layer.opacity,
+        serviceLabelMap
       );
 
       console.log(`[Transformer] Layer "${layer.title}" - Result: geomType=${geomType}, hasOutlinePaint=${!!outlinePaint}`);
