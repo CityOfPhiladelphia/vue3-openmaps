@@ -236,12 +236,15 @@ function detectGeometryType(symbol?: EsriSymbol): 'fill' | 'line' | 'circle' {
 
 /**
  * Check if an Esri outline should be rendered
- * Returns false if outline style is null/none or color is null
+ * Returns false if outline style is null/none, color is null, width is 0, or alpha is 0
  */
-function hasVisibleOutline(outline?: { style?: string; color?: number[] | null }): boolean {
+function hasVisibleOutline(outline?: { style?: string; color?: number[] | null; width?: number }): boolean {
   if (!outline) return false;
   if (outline.style === 'esriSLSNull') return false;
   if (outline.color === null) return false;
+  if (outline.width === 0) return false;
+  // Check if alpha channel is 0 (fully transparent)
+  if (outline.color && outline.color[3] === 0) return false;
   return true;
 }
 
