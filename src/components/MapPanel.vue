@@ -377,14 +377,14 @@ function formatFieldValue(value: unknown, format?: PopupFieldFormat): string {
 }
 
 // Handle layer click
-function handleLayerClick(e: { features?: Array<{ properties?: Record<string, unknown> }>; lngLat: { lng: number; lat: number } }, layerId: string) {
+function handleLayerClick(e: { features?: Array<{ properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry }>; lngLat: { lng: number; lat: number } }, layerId: string) {
   const config = getLayerConfig(layerId);
   if (!config) return;
 
   const features = e.features || [];
   if (features.length === 0) return;
 
-  const newFeatures: PopupFeature[] = features.map((feature: { properties?: Record<string, unknown> }) => ({
+  const newFeatures: PopupFeature[] = features.map((feature: { properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry }) => ({
     layerId: config.id,
     layerTitle: config.title,
     properties: feature.properties || {},
@@ -394,6 +394,21 @@ function handleLayerClick(e: { features?: Array<{ properties?: Record<string, un
   popupFeatures.value = newFeatures;
   currentFeatureIndex.value = 0;
   popupLngLat.value = [e.lngLat.lng, e.lngLat.lat];
+
+  // Phase 6.4: Update selectedFeature state
+  const firstFeature = features[0];
+  if (firstFeature && firstFeature.geometry) {
+    const geometryType = getGeometryType(firstFeature.geometry);
+    const originalStyle = getOriginalStyleProperties(config.id, config.type);
+
+    selectedFeature.value = {
+      geometry: firstFeature.geometry,
+      geometryType,
+      layerId: config.id,
+      properties: firstFeature.properties || {},
+      originalStyle,
+    };
+  }
 }
 
 // Close popup
@@ -401,6 +416,9 @@ function closePopup() {
   popupFeatures.value = [];
   popupLngLat.value = null;
   currentFeatureIndex.value = 0;
+
+  // Phase 6.4: Clear selectedFeature state
+  selectedFeature.value = null;
 }
 
 // Current feature for display
@@ -473,6 +491,64 @@ const highlightLinesPaint = {
   "line-color": "#00FFFF",
   "line-opacity": 0.9,
 };
+
+// ============================================================================
+// SELECTED FEATURE STATE (Phase 6.4 - State Management)
+// ============================================================================
+interface SelectedFeature {
+  geometry: GeoJSON.Geometry;
+  geometryType: 'Point' | 'LineString' | 'Polygon' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon';
+  layerId: string;
+  properties: Record<string, unknown>;
+  originalStyle: {
+    radius?: number;  // for circles
+    width?: number;   // for lines
+  };
+}
+
+const selectedFeature = ref<SelectedFeature | null>(null);
+
+// Helper function to determine geometry type from a feature
+function getGeometryType(geometry: GeoJSON.Geometry): SelectedFeature['geometryType'] {
+  return geometry.type as SelectedFeature['geometryType'];
+}
+
+// Helper function to get original style properties for a layer
+function getOriginalStyleProperties(layerId: string, layerType: string): { radius?: number; width?: number } {
+  const config = getLayerConfig(layerId);
+  if (!config) return { radius: 5, width: 2 }; // defaults
+
+  const paint = config.paint || {};
+
+  if (layerType === 'circle') {
+    // Extract circle-radius - handle both static values and expressions
+    const radiusValue = paint['circle-radius'];
+    if (typeof radiusValue === 'number') {
+      return { radius: radiusValue };
+    }
+    // For expressions, we'll use a default for now
+    // In the future, this could evaluate the expression for the specific feature
+    return { radius: 5 };
+  }
+
+  if (layerType === 'line' || layerType === 'fill') {
+    // Extract line-width
+    const widthValue = paint['line-width'];
+    if (typeof widthValue === 'number') {
+      return { width: widthValue };
+    }
+    // Check outlinePaint for fill layers
+    if (config.outlinePaint && config.outlinePaint['line-width']) {
+      const outlineWidth = config.outlinePaint['line-width'];
+      if (typeof outlineWidth === 'number') {
+        return { width: outlineWidth };
+      }
+    }
+    return { width: 2 };
+  }
+
+  return { radius: 5, width: 2 };
+}
 </script>
 
 <template>

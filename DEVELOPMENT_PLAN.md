@@ -245,7 +245,7 @@ This phase adds visual highlighting for selected features. When a user clicks a 
 ### State Management
 
 #### Tracking Selected Feature
-- [ ] Create a reactive ref in `App.vue` (or MapPanel.vue) to track the currently selected feature:
+- [x] Create a reactive ref in `App.vue` (or MapPanel.vue) to track the currently selected feature:
   ```typescript
   const selectedFeature = ref<{
     geometry: any;
@@ -256,28 +256,28 @@ This phase adds visual highlighting for selected features. When a user clicks a 
     };
   } | null>(null);
   ```
-- [ ] Update this ref when a feature is clicked and popup opens
-- [ ] Clear this ref when popup closes or map is clicked elsewhere
+- [x] Update this ref when a feature is clicked and popup opens
+- [x] Clear this ref when popup closes or map is clicked elsewhere
 
 #### Extracting Original Style Information
 When a feature is clicked, we need to determine its original visual properties to calculate the highlight size:
 
-- [ ] For **point features** (circles):
-  - [ ] Query the layer's paint properties to get `circle-radius`
-  - [ ] If `circle-radius` uses expressions (match, case, etc.), evaluate it for the clicked feature
-  - [ ] Use MapLibre's `map.getPaintProperty(layerId, 'circle-radius')` API
-  - [ ] Handle both numeric values and expressions
+- [x] For **point features** (circles):
+  - [x] Query the layer's paint properties to get `circle-radius`
+  - [x] If `circle-radius` uses expressions (match, case, etc.), evaluate it for the clicked feature
+  - [x] Use MapLibre's `map.getPaintProperty(layerId, 'circle-radius')` API
+  - [x] Handle both numeric values and expressions
 
-- [ ] For **line features** (lines and polygon borders):
-  - [ ] Query the layer's paint properties to get `line-width`
-  - [ ] Similar expression evaluation as circles
-  - [ ] Use `map.getPaintProperty(layerId, 'line-width')` API
+- [x] For **line features** (lines and polygon borders):
+  - [x] Query the layer's paint properties to get `line-width`
+  - [x] Similar expression evaluation as circles
+  - [x] Use `map.getPaintProperty(layerId, 'line-width')` API
 
-- [ ] Create helper function `getFeatureStyleProperties(layerId: string, feature: any)` that:
-  - [ ] Takes a layer ID and feature
-  - [ ] Returns an object with `{ radius?: number, width?: number }`
-  - [ ] Evaluates expressions if needed using feature properties
-  - [ ] Falls back to default values if properties can't be determined (e.g., radius: 5, width: 2)
+- [x] Create helper function `getFeatureStyleProperties(layerId: string, feature: any)` that:
+  - [x] Takes a layer ID and feature
+  - [x] Returns an object with `{ radius?: number, width?: number }`
+  - [x] Evaluates expressions if needed using feature properties
+  - [x] Falls back to default values if properties can't be determined (e.g., radius: 5, width: 2)
 
 ### Highlight Lifecycle
 
