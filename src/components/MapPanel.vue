@@ -71,14 +71,6 @@ async function fetchAllFeatures(url: string, where?: string): Promise<GeoJSON.Fe
   };
 }
 
-// Helper to convert ArcGIS FeatureServer URL to GeoJSON source
-function createEsriSource(url: string, where?: string) {
-  const whereClause = encodeURIComponent(where || "1=1");
-  return {
-    type: "geojson" as const,
-    data: `${url}/query?where=${whereClause}&outFields=*&returnGeometry=true&f=geojson`,
-  };
-}
 
 // Store for pre-fetched paginated data (keyed by layer id)
 const paginatedData = ref<Record<string, GeoJSON.FeatureCollection>>({});
@@ -86,10 +78,8 @@ const paginatedData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 // Layers that need pagination (more than 2000 features)
 const PAGINATED_LAYER_IDS = ["bike-network"];
 
-// Layers that use spatial filtering (query by map bounds)
-const SPATIAL_LAYER_IDS = ["zoning-base-districts", "complete-street-types", "land-use"];
-
 // Store for spatially-filtered data (keyed by layer id)
+// All non-paginated layers use spatial filtering (query by map bounds)
 const spatialData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 
 // Current map bounds (updated on moveend)
@@ -125,9 +115,14 @@ async function fetchFeaturesInBounds(
 }
 
 // Fetch spatial layers when bounds change
+// All non-paginated layers use spatial filtering
 async function fetchSpatialLayers(bounds: Bounds) {
   for (const { config } of props.layerList) {
-    if (SPATIAL_LAYER_IDS.includes(config.id) && props.visibleLayers.has(config.id)) {
+    // Skip paginated layers - they're loaded once on mount
+    if (PAGINATED_LAYER_IDS.includes(config.id)) continue;
+
+    // Fetch data for all visible non-paginated layers
+    if (props.visibleLayers.has(config.id)) {
       emit("layerLoading", config.id, true);
       try {
         const data = await fetchFeaturesInBounds(config.url, bounds, config.where);
@@ -168,13 +163,18 @@ function onMapLoad(map: any) {
   fetchSpatialLayers(currentBounds.value);
 }
 
-// Watch for visibility changes on spatial layers - fetch if turned on and we have bounds
+// Watch for visibility changes - fetch any newly visible layers
 watch(
   () => props.visibleLayers,
-  (newVisible) => {
+  (newVisible, oldVisible) => {
     if (currentBounds.value) {
-      for (const layerId of SPATIAL_LAYER_IDS) {
-        if (newVisible.has(layerId) && !spatialData.value[layerId]) {
+      // Check if any layer was just turned on
+      for (const { config } of props.layerList) {
+        // Skip paginated layers
+        if (PAGINATED_LAYER_IDS.includes(config.id)) continue;
+
+        // If layer is now visible and wasn't before, and we don't have data yet
+        if (newVisible.has(config.id) && !oldVisible?.has(config.id) && !spatialData.value[config.id]) {
           // Layer was just turned on and we don't have data yet
           fetchSpatialLayers(currentBounds.value);
           break;
@@ -212,15 +212,15 @@ function isVisible(layerId: string) {
   return props.visibleLayers.has(layerId);
 }
 
-// Check if layer has source ready (paginated/spatial layers need data loaded first)
+// Check if layer has source ready
+// Paginated layers need data loaded on mount
+// All other layers use spatial filtering and need data fetched for current bounds
 function hasSourceReady(layer: any): boolean {
   if (PAGINATED_LAYER_IDS.includes(layer.id)) {
     return !!paginatedData.value[layer.id];
   }
-  if (SPATIAL_LAYER_IDS.includes(layer.id)) {
-    return !!spatialData.value[layer.id];
-  }
-  return true;
+  // All non-paginated layers use spatial filtering
+  return !!spatialData.value[layer.id];
 }
 
 const visibleCircleLayers = computed(() =>
@@ -251,20 +251,16 @@ const visibleLineLayers = computed(() =>
 // GENERIC SOURCE & PAINT HELPERS
 // ============================================================================
 function getSource(layer: any) {
-  // Check if this layer uses paginated data
+  // Check if this layer uses paginated data (loaded once on mount)
   if (PAGINATED_LAYER_IDS.includes(layer.id)) {
     const data = paginatedData.value[layer.id];
     // Data should always exist here because we filter with hasSourceReady()
     return { type: "geojson" as const, data: data! };
   }
-  // Check if this layer uses spatial data
-  if (SPATIAL_LAYER_IDS.includes(layer.id)) {
-    const data = spatialData.value[layer.id];
-    // Data should always exist here because we filter with hasSourceReady()
-    return { type: "geojson" as const, data: data! };
-  }
-  // Default: create Esri source
-  return createEsriSource(layer.url, layer.where);
+  // All other layers use spatial filtering (loaded by bounds)
+  const data = spatialData.value[layer.id];
+  // Data should always exist here because we filter with hasSourceReady()
+  return { type: "geojson" as const, data: data! };
 }
 
 function getLayerOpacity(layerId: string): number {
