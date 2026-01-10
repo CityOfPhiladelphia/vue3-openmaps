@@ -190,34 +190,34 @@ This phase adds visual highlighting for selected features. When a user clicks a 
 ### Highlight Layer Architecture
 
 #### Layer Setup
-- [ ] Create two dedicated highlight layers that sit on top of all feature layers:
-  - [ ] `highlight-circles-layer` - for point features
-  - [ ] `highlight-lines-layer` - for line and polygon border features
-- [ ] These layers should be added to the map AFTER all regular feature layers to ensure highlights appear on top
-- [ ] Use a single GeoJSON source for each layer type: `highlight-circles-source` and `highlight-lines-source`
+- [x] Create two dedicated highlight layers that sit on top of all feature layers:
+  - [x] `highlight-circles-layer` - for point features
+  - [x] `highlight-lines-layer` - for line and polygon border features
+- [x] These layers should be added to the map AFTER all regular feature layers to ensure highlights appear on top
+- [x] Use a single GeoJSON source for each layer type: `highlight-circles-source` and `highlight-lines-source`
 
 #### Initial Layer State
-- [ ] Both highlight layers should start with empty GeoJSON sources:
+- [x] Both highlight layers should start with empty GeoJSON sources:
   ```typescript
   {
     type: "FeatureCollection",
     features: []
   }
   ```
-- [ ] Layers should be created once during map initialization and persist throughout the app lifecycle
-- [ ] Update the source data (not recreate layers) when features are selected/deselected
+- [x] Layers should be created once during map initialization and persist throughout the app lifecycle
+- [x] Update the source data (not recreate layers) when features are selected/deselected
 
 ### Highlight Styling
 
 #### Color Specification
-- [ ] Use electric blue/cyan color: `#00FFFF`
-- [ ] Apply to both circle and line layers
-- [ ] Consider adding a subtle glow effect with `circle-stroke-color` and `line-blur` for enhanced visibility
+- [x] Use electric blue/cyan color: `#00FFFF`
+- [x] Apply to both circle and line layers
+- [x] Consider adding a subtle glow effect with `circle-stroke-color` and `line-blur` for enhanced visibility
 
 #### Circle (Point) Styling
-- [ ] Base the highlight size on the original feature's circle radius
-- [ ] Add **+3px** to the original circle radius
-- [ ] Example paint properties:
+- [x] Base the highlight size on the original feature's circle radius
+- [x] Add **+3px** to the original circle radius
+- [x] Example paint properties:
   ```typescript
   {
     'circle-radius': ['get', 'highlightRadius'], // original radius + 3
@@ -227,12 +227,12 @@ This phase adds visual highlighting for selected features. When a user clicks a 
     'circle-stroke-color': '#FFFFFF'
   }
   ```
-- [ ] Store the calculated highlight radius in the feature properties when creating the highlight GeoJSON
+- [x] Store the calculated highlight radius in the feature properties when creating the highlight GeoJSON
 
 #### Line Styling (Lines and Polygon Borders)
-- [ ] Base the highlight width on the original feature's line width
-- [ ] Add **+3px** to the original line width
-- [ ] Example paint properties:
+- [x] Base the highlight width on the original feature's line width
+- [x] Add **+3px** to the original line width
+- [x] Example paint properties:
   ```typescript
   {
     'line-width': ['get', 'highlightWidth'], // original width + 3
@@ -240,7 +240,7 @@ This phase adds visual highlighting for selected features. When a user clicks a 
     'line-opacity': 0.9
   }
   ```
-- [ ] Store the calculated highlight width in the feature properties when creating the highlight GeoJSON
+- [x] Store the calculated highlight width in the feature properties when creating the highlight GeoJSON
 
 ### State Management
 

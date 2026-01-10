@@ -444,6 +444,35 @@ const popupHtml = computed(() => {
   html += `</div>`;
   return html;
 });
+
+// ============================================================================
+// HIGHLIGHT LAYER STATE (Phase 6.4)
+// ============================================================================
+// Empty GeoJSON sources for highlight layers
+const highlightCirclesSource = ref<GeoJSON.FeatureCollection>({
+  type: "FeatureCollection",
+  features: [],
+});
+
+const highlightLinesSource = ref<GeoJSON.FeatureCollection>({
+  type: "FeatureCollection",
+  features: [],
+});
+
+// Highlight layer paint properties
+const highlightCirclesPaint = {
+  "circle-radius": ["get", "highlightRadius"],
+  "circle-color": "#00FFFF",
+  "circle-opacity": 0.8,
+  "circle-stroke-width": 2,
+  "circle-stroke-color": "#FFFFFF",
+};
+
+const highlightLinesPaint = {
+  "line-width": ["get", "highlightWidth"],
+  "line-color": "#00FFFF",
+  "line-opacity": 0.9,
+};
 </script>
 
 <template>
@@ -504,6 +533,18 @@ const popupHtml = computed(() => {
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
         @click="(e) => handleLayerClick(e, layer.id)"
+      />
+
+      <!-- Highlight Layers (Phase 6.4) - Rendered on top of all feature layers -->
+      <CircleLayer
+        id="highlight-circles"
+        :source="{ type: 'geojson', data: highlightCirclesSource }"
+        :paint="highlightCirclesPaint"
+      />
+      <LineLayer
+        id="highlight-lines"
+        :source="{ type: 'geojson', data: highlightLinesSource }"
+        :paint="highlightLinesPaint"
       />
 
       <!-- Popup -->
