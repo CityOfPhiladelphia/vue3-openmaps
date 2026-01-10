@@ -961,6 +961,21 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
       continue;
     }
 
+    // Skip layers with specific itemId that are under construction
+    // This itemId (4f39b829b96d437da9231727d9c91fab) is shared by 6 incomplete L&I violation layers:
+    // - Licenses and Inspections - Violations (All) (under construction)
+    // - Rental License Violations (under construction)
+    // - Property Maintenance Violations (under construction)
+    // - Construction Violations (under construction)
+    // - C&I Fire Violations (under construction)
+    // - Business Violations (under construction)
+    // The production app filters these out but keeps "Vacancy Violations (under construction)"
+    // which has a different itemId (0c88f402894440ca8b8005fdc71f5366)
+    if (layer.itemId === '4f39b829b96d437da9231727d9c91fab') {
+      console.log(`Skipping layer with under-construction itemId: ${layer.title}`);
+      continue;
+    }
+
     console.log('[Transformer] Processing layer:', layer.title);
     console.log(`[Transformer] Layer "${layer.title}" - Renderer type:`, layer.layerDefinition?.drawingInfo?.renderer?.type);
 
