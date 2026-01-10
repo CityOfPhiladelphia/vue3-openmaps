@@ -382,38 +382,117 @@ function formatFieldValue(value: unknown, format?: PopupFieldFormat): string {
   return String(value);
 }
 
-// Handle layer click
-function handleLayerClick(e: { features?: Array<{ properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry }>; lngLat: { lng: number; lat: number } }, layerId: string) {
-  const config = getLayerConfig(layerId);
-  if (!config) return;
+// Deduplicate features by creating a unique key from layer ID and feature properties
+// MapLibre may return the same feature multiple times (e.g., from fill + outline layers)
+function deduplicateFeatures(features: Array<{ properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry; layer: { id: string } }>): Array<{ properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry; layer: { id: string } }> {
+  const seen = new Set<string>();
+  return features.filter((feature) => {
+    // Create a unique key from base layer ID (without -outline suffix) and stringified properties
+    const baseLayerId = feature.layer.id.replace(/-outline$/, '');
+    const key = `${baseLayerId}:${JSON.stringify(feature.properties)}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
 
-  const features = e.features || [];
-  if (features.length === 0) return;
+// Sort features by layer order (layers rendered on top appear first)
+// Uses the layer config order to determine which features should be shown first
+function sortFeaturesByLayerOrder(
+  features: Array<{ layer: { id: string } }>,
+  layerConfigs: Array<{ id: string }>
+): Array<{ layer: { id: string } }> {
+  // Create a map of layer ID to its index in the config (lower index = rendered earlier = lower priority)
+  const layerIndexMap = new Map<string, number>();
+  layerConfigs.forEach((config, index) => {
+    layerIndexMap.set(config.id, index);
+  });
 
-  const newFeatures: PopupFeature[] = features.map((feature: { properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry }) => ({
-    layerId: config.id,
-    layerTitle: config.title,
-    properties: feature.properties || {},
-    popupConfig: config.popup,
-  }));
+  // Sort features by their layer's index (higher index = rendered later = shown first)
+  return features.sort((a, b) => {
+    const baseLayerIdA = a.layer.id.replace(/-outline$/, '');
+    const baseLayerIdB = b.layer.id.replace(/-outline$/, '');
+    const indexA = layerIndexMap.get(baseLayerIdA) ?? -1;
+    const indexB = layerIndexMap.get(baseLayerIdB) ?? -1;
+    return indexB - indexA; // Reverse order: higher index first
+  });
+}
+
+// Handle layer click - collects ALL features at click point from all visible layers
+function handleLayerClick(e: { features?: Array<{ properties?: Record<string, unknown>; geometry?: GeoJSON.Geometry; layer: { id: string } }>; lngLat: { lng: number; lat: number } }) {
+  // Query ALL visible layers at the click point, not just the clicked layer
+  // This enables navigation between multiple overlapping features
+  const map = mapRef.value?.getMap();
+  if (!map) return;
+
+  // Build array of all visible layer IDs from the layer configuration
+  const visibleLayerIds: string[] = [];
+  props.layerList.forEach(layerItem => {
+    const layerConfig = layerItem.config;
+    if (props.visibleLayers.has(layerConfig.id)) {
+      visibleLayerIds.push(layerConfig.id);
+      // Include outline layers for fill layers
+      if (layerConfig.outlinePaint) {
+        visibleLayerIds.push(`${layerConfig.id}-outline`);
+      }
+    }
+  });
+
+  // Query all features at the click point from all visible layers
+  const point = map.project([e.lngLat.lng, e.lngLat.lat]);
+  const allFeatures = map.queryRenderedFeatures(point, {
+    layers: visibleLayerIds,
+  });
+
+  if (allFeatures.length === 0) return;
+
+  // Remove duplicate features (e.g., outline + fill from same feature)
+  const uniqueFeatures = deduplicateFeatures(allFeatures);
+
+  // Sort features by layer rendering order (bottom to top)
+  // Extract just the configs for the sorting function
+  const layerConfigs = props.layerList.map(item => item.config);
+  const sortedFeatures = sortFeaturesByLayerOrder(uniqueFeatures, layerConfigs);
+
+  // Convert to PopupFeature format
+  const newFeatures: PopupFeature[] = sortedFeatures.map((feature) => {
+    const baseLayerId = feature.layer.id.replace(/-outline$/, '');
+    const config = getLayerConfig(baseLayerId);
+    if (!config) return null;
+
+    return {
+      layerId: config.id,
+      layerTitle: config.title,
+      properties: feature.properties || {},
+      popupConfig: config.popup,
+    };
+  }).filter((f): f is PopupFeature => f !== null);
+
+  if (newFeatures.length === 0) return;
 
   popupFeatures.value = newFeatures;
   currentFeatureIndex.value = 0;
   popupLngLat.value = [e.lngLat.lng, e.lngLat.lat];
 
-  // Store selected feature for highlighting
-  const firstFeature = features[0];
+  // Store selected feature for highlighting (use the first feature from the sorted list)
+  const firstFeature = sortedFeatures[0];
   if (firstFeature && firstFeature.geometry) {
-    const geometryType = getGeometryType(firstFeature.geometry);
-    const originalStyle = getOriginalStyleProperties(config.id, config.type);
+    const baseLayerId = firstFeature.layer.id.replace(/-outline$/, '');
+    const config = getLayerConfig(baseLayerId);
+    if (config) {
+      const geometryType = getGeometryType(firstFeature.geometry);
+      const originalStyle = getOriginalStyleProperties(config.id, config.type);
 
-    selectedFeature.value = {
-      geometry: firstFeature.geometry,
-      geometryType,
-      layerId: config.id,
-      properties: firstFeature.properties || {},
-      originalStyle,
-    };
+      selectedFeature.value = {
+        geometry: firstFeature.geometry,
+        geometryType,
+        layerId: config.id,
+        properties: firstFeature.properties || {},
+        originalStyle,
+      };
+    }
   }
 }
 
@@ -734,7 +813,7 @@ watch(
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
         :before-id="'highlight-circles'"
-        @click="(e) => handleLayerClick(e, layer.id)"
+        @click="handleLayerClick"
       />
 
       <!-- Fill Layers - positioned before highlight layers -->
@@ -746,7 +825,7 @@ watch(
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
         :before-id="'highlight-circles'"
-        @click="(e) => handleLayerClick(e, layer.id)"
+        @click="handleLayerClick"
       />
 
       <!-- Outline LineLayer for Fill Layers that have outlinePaint - positioned before highlight layers -->
@@ -758,7 +837,7 @@ watch(
         :paint="getOutlinePaint(layer)"
         :minzoom="layer.minZoom"
         :before-id="'highlight-lines'"
-        @click="(e) => handleLayerClick(e, layer.id)"
+        @click="handleLayerClick"
       />
 
       <!-- Line Layers - positioned before highlight layers -->
@@ -770,7 +849,7 @@ watch(
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
         :before-id="'highlight-lines'"
-        @click="(e) => handleLayerClick(e, layer.id)"
+        @click="handleLayerClick"
       />
 
       <!-- Highlight Layers - Must be last to render on top of all feature layers -->

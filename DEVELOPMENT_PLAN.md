@@ -457,15 +457,15 @@ This phase adds support for navigating through multiple overlapping features whe
 ### Feature Collection on Click
 
 #### Click Event Handling
-- [ ] Modify the existing click handler in `MapPanel.vue` to collect ALL features at the click point
-- [ ] Currently, the app likely shows only the first/topmost feature - this needs to change
-- [ ] Use MapLibre's `map.queryRenderedFeatures(point, options)` to get all features at click location
+- [x] Modify the existing click handler in `MapPanel.vue` to collect ALL features at the click point
+- [x] Currently, the app likely shows only the first/topmost feature - this needs to change
+- [x] Use MapLibre's `map.queryRenderedFeatures(point, options)` to get all features at click location
 
 #### Query Strategy
-- [ ] Query all visible, enabled layers (layers that are currently toggled on)
-- [ ] Build array of layer IDs from the current layer config state
-- [ ] Filter to only include layers where `visible === true`
-- [ ] Pass these layer IDs to `queryRenderedFeatures`:
+- [x] Query all visible, enabled layers (layers that are currently toggled on)
+- [x] Build array of layer IDs from the current layer config state
+- [x] Filter to only include layers where `visible === true`
+- [x] Pass these layer IDs to `queryRenderedFeatures`:
   ```typescript
   const visibleLayerIds = layerConfigs
     .filter(config => config.visible)
@@ -477,16 +477,16 @@ This phase adds support for navigating through multiple overlapping features whe
   ```
 
 #### Feature Deduplication
-- [ ] MapLibre may return duplicate features if a layer has multiple sub-layers (e.g., fill + line for polygons)
-- [ ] Deduplicate by unique combination of `layerId` + feature ID/properties
-- [ ] Create helper function `deduplicateFeatures(features: MapLibreFeature[]): MapLibreFeature[]`
-- [ ] Keep the first occurrence of each unique feature
+- [x] MapLibre may return duplicate features if a layer has multiple sub-layers (e.g., fill + line for polygons)
+- [x] Deduplicate by unique combination of `layerId` + feature ID/properties
+- [x] Create helper function `deduplicateFeatures(features: MapLibreFeature[]): MapLibreFeature[]`
+- [x] Keep the first occurrence of each unique feature
 
 #### Feature Sorting
-- [ ] Sort features by layer order (top layers first)
-- [ ] Users expect to see features in the same order as layer stacking
-- [ ] Use the layer config order to determine priority
-- [ ] Create helper function `sortFeaturesByLayerOrder(features: MapLibreFeature[], layerConfigs: LayerConfig[]): MapLibreFeature[]`
+- [x] Sort features by layer order (top layers first)
+- [x] Users expect to see features in the same order as layer stacking
+- [x] Use the layer config order to determine priority
+- [x] Create helper function `sortFeaturesByLayerOrder(features: MapLibreFeature[], layerConfigs: LayerConfig[]): MapLibreFeature[]`
 
 ### State Management
 
