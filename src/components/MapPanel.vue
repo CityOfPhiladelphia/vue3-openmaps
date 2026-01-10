@@ -395,7 +395,7 @@ function handleLayerClick(e: { features?: Array<{ properties?: Record<string, un
   currentFeatureIndex.value = 0;
   popupLngLat.value = [e.lngLat.lng, e.lngLat.lat];
 
-  // Phase 6.4: Update selectedFeature state
+  // Store selected feature for highlighting
   const firstFeature = features[0];
   if (firstFeature && firstFeature.geometry) {
     const geometryType = getGeometryType(firstFeature.geometry);
@@ -417,7 +417,7 @@ function closePopup() {
   popupLngLat.value = null;
   currentFeatureIndex.value = 0;
 
-  // Phase 6.4: Clear selectedFeature state
+  // Clear selected feature highlight
   selectedFeature.value = null;
 }
 
@@ -464,7 +464,7 @@ const popupHtml = computed(() => {
 });
 
 // ============================================================================
-// HIGHLIGHT LAYER STATE (Phase 6.4)
+// FEATURE HIGHLIGHT LAYERS
 // ============================================================================
 // Empty GeoJSON sources for highlight layers
 const highlightCirclesSource = ref<GeoJSON.FeatureCollection>({
@@ -493,7 +493,7 @@ const highlightLinesPaint = {
 };
 
 // ============================================================================
-// SELECTED FEATURE STATE (Phase 6.4 - State Management)
+// SELECTED FEATURE STATE
 // ============================================================================
 interface SelectedFeature {
   geometry: GeoJSON.Geometry;
@@ -611,7 +611,7 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
         @click="(e) => handleLayerClick(e, layer.id)"
       />
 
-      <!-- Highlight Layers (Phase 6.4) - Rendered on top of all feature layers -->
+      <!-- Highlight Layers - Rendered on top of all feature layers to show selected features -->
       <CircleLayer
         id="highlight-circles"
         :source="{ type: 'geojson', data: highlightCirclesSource }"
