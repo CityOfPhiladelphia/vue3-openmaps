@@ -53,6 +53,17 @@ export interface EsriRenderer {
     label?: string;
     symbol?: EsriSymbol;
   }>;
+  visualVariables?: Array<{
+    type: 'colorInfo' | 'sizeInfo' | 'opacityInfo' | 'rotationInfo';
+    field?: string;
+    stops?: Array<{
+      value: number;
+      color?: number[];
+      size?: number;
+      label?: string;
+    }>;
+    [key: string]: unknown;
+  }>;
   [key: string]: unknown;
 }
 
@@ -516,11 +527,27 @@ function convertUniqueValueRenderer(
 }
 
 /**
- * Convert Esri ClassBreaks renderer to MapLibre paint with step expression
+ * Convert Esri ClassBreaks renderer to MapLibre paint with step or interpolate expression
+ *
+ * Handles two types of class breaks rendering:
+ * 1. Traditional classBreakInfos: Discrete color classes with step expression
+ * 2. visualVariables with colorInfo: Continuous color ramp with interpolate expression
+ *
+ * Visual variables are commonly used for choropleth maps with smooth color gradients.
+ * Example: Heat Exposure layer uses 5 color stops to create a diverging color scheme
+ * (dark blue → green → yellow) based on HEI_SCORE values.
  */
 function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: number): RendererResult {
   const field = renderer.field!;
   const classBreakInfos = renderer.classBreakInfos || [];
+
+  // Check for visualVariables with colorInfo (continuous color ramp)
+  const colorVariable = renderer.visualVariables?.find(v => v.type === 'colorInfo');
+
+  if (colorVariable?.stops && colorVariable.stops.length > 0) {
+    // Use visualVariables for continuous color ramp
+    return convertColorInfoRenderer(colorVariable, field, renderer, layerOpacity);
+  }
 
   if (classBreakInfos.length === 0) {
     return { paint: {}, legend: [], geomType: 'fill', outlinePaint: null };
@@ -562,6 +589,90 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
       'fill-opacity': convertOpacity(layerOpacity),
     };
 
+    if (hasVisibleOutline(firstSymbol?.outline)) {
+      const outlineWidth = firstSymbol!.outline!.width || 1;
+      const outlineColor = esriColorToCSS(firstSymbol!.outline!.color);
+
+      paint['fill-outline-color'] = outlineColor;
+
+      if (outlineWidth > 1) {
+        outlinePaint = {
+          'line-color': outlineColor,
+          'line-width': outlineWidth,
+        };
+      }
+    }
+  }
+
+  return { paint, legend, geomType, outlinePaint };
+}
+
+/**
+ * Convert Esri visualVariables colorInfo to MapLibre paint with interpolate expression
+ *
+ * Creates a continuous color ramp using linear interpolation between color stops.
+ * This is used for choropleth maps where colors transition smoothly based on data values.
+ *
+ * MapLibre interpolate format:
+ * ["interpolate", ["linear"], ["get", field], stop1, color1, stop2, color2, ...]
+ *
+ * @param colorVariable - The colorInfo visual variable with stops
+ * @param field - The field name to interpolate on
+ * @param renderer - The full renderer (for accessing default symbol/outline)
+ * @param layerOpacity - Layer opacity
+ */
+function convertColorInfoRenderer(
+  colorVariable: NonNullable<EsriRenderer['visualVariables']>[0],
+  field: string,
+  renderer: EsriRenderer,
+  layerOpacity?: number
+): RendererResult {
+  const stops = colorVariable.stops || [];
+
+  if (stops.length === 0) {
+    return { paint: {}, legend: [], geomType: 'fill', outlinePaint: null };
+  }
+
+  // Determine geometry type from first classBreakInfo symbol or default symbol
+  const firstSymbol = renderer.classBreakInfos?.[0]?.symbol || renderer.defaultSymbol;
+  const geomType = detectGeometryType(firstSymbol);
+
+  let paint: Record<string, unknown> = {};
+  let legend: LegendItem[] = [];
+  let outlinePaint: Record<string, unknown> | null = null;
+
+  if (geomType === 'fill') {
+    // Build interpolate expression for smooth color transitions
+    // interpolate format: ["interpolate", ["linear"], ["get", field], value1, color1, value2, color2, ...]
+    const colorInterpolate: unknown[] = ['interpolate', ['linear'], ['get', field]];
+
+    for (const stop of stops) {
+      colorInterpolate.push(stop.value);
+      colorInterpolate.push(esriColorToCSS(stop.color));
+
+      // Add legend entry for each stop
+      legend.push({
+        type: 'fill' as const,
+        color: esriColorToCSS(stop.color),
+        label: stop.label || `${stop.value}`,
+      });
+    }
+
+    // Wrap interpolate in a case expression to handle null/undefined values
+    // If field value is null, use transparent color so "no data" areas are not filled
+    const colorExpression: unknown[] = [
+      'case',
+      ['==', ['get', field], null],
+      'rgba(0, 0, 0, 0)',  // Transparent for null/no-data values
+      colorInterpolate      // Otherwise use the interpolated color
+    ];
+
+    paint = {
+      'fill-color': colorExpression,
+      'fill-opacity': convertOpacity(layerOpacity),
+    };
+
+    // Check for outline on default symbol or first class break symbol
     if (hasVisibleOutline(firstSymbol?.outline)) {
       const outlineWidth = firstSymbol!.outline!.width || 1;
       const outlineColor = esriColorToCSS(firstSymbol!.outline!.color);
