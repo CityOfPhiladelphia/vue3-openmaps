@@ -302,7 +302,7 @@ When popup closes or another feature is selected:
 #### Edge Cases
 - [x] If a feature with no original style info is clicked, use default values (radius: 5, width: 2)
 - [x] If clicking the same feature again (while popup is open), don't recreate the highlight
-- [ ] If toggling a layer off while its feature is selected, clear the highlight
+- [x] If toggling a layer off while its feature is selected, clear the highlight
 - [x] If panning/zooming while a feature is selected, maintain the highlight
 
 ### Integration Points
@@ -321,9 +321,9 @@ When popup closes or another feature is selected:
 - [x] The popup should already emit events we can hook into - verify `MapPopup.vue` emits close/feature-change events
 
 #### Layer Toggle Interaction
-- [ ] Watch for layer visibility changes
-- [ ] If the currently selected feature's layer is toggled off, call `clearHighlight()`
-- [ ] This prevents orphaned highlights when source layers are hidden
+- [x] Watch for layer visibility changes
+- [x] If the currently selected feature's layer is toggled off, call `clearHighlight()`
+- [x] This prevents orphaned highlights when source layers are hidden
 
 ### Helper Functions to Create
 

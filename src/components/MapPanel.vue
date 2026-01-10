@@ -687,6 +687,20 @@ function clearHighlightLayers() {
 watch(selectedFeature, (newFeature) => {
   updateHighlightLayers(newFeature);
 });
+
+// Watch for layer visibility changes to prevent orphaned highlights
+// If the currently selected feature's layer is toggled off, clear the highlight
+watch(
+  () => props.visibleLayers,
+  (newVisibleLayers) => {
+    if (selectedFeature.value && !newVisibleLayers.has(selectedFeature.value.layerId)) {
+      // The selected feature's layer was toggled off, clear the highlight and popup
+      selectedFeature.value = null;
+      closePopup();
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <template>
