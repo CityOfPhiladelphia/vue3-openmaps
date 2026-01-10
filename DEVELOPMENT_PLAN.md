@@ -284,41 +284,41 @@ When a feature is clicked, we need to determine its original visual properties t
 #### On Feature Click (Selection)
 When a feature is clicked and popup opens:
 
-1. [ ] Determine the feature's geometry type (Point, LineString, Polygon)
-2. [ ] Extract the feature's original style properties (radius or width)
-3. [ ] Create highlight GeoJSON:
-   - [ ] For **Point**: Create Point feature with `highlightRadius = originalRadius + 3`
-   - [ ] For **LineString**: Create LineString feature with `highlightWidth = originalWidth + 3`
-   - [ ] For **Polygon**: Extract polygon boundary as LineString with `highlightWidth = originalBorderWidth + 3`
-4. [ ] Update the appropriate highlight layer source with the new GeoJSON
-5. [ ] Store feature info in `selectedFeature` ref
+1. [x] Determine the feature's geometry type (Point, LineString, Polygon)
+2. [x] Extract the feature's original style properties (radius or width)
+3. [x] Create highlight GeoJSON:
+   - [x] For **Point**: Create Point feature with `highlightRadius = originalRadius + 3`
+   - [x] For **LineString**: Create LineString feature with `highlightWidth = originalWidth + 3`
+   - [x] For **Polygon**: Extract polygon boundary as LineString with `highlightWidth = originalBorderWidth + 3`
+4. [x] Update the appropriate highlight layer source with the new GeoJSON
+5. [x] Store feature info in `selectedFeature` ref
 
 #### On Feature Deselection
 When popup closes or another feature is selected:
 
-1. [ ] Clear the highlight layer sources (set to empty FeatureCollection)
-2. [ ] Set `selectedFeature.value = null`
+1. [x] Clear the highlight layer sources (set to empty FeatureCollection)
+2. [x] Set `selectedFeature.value = null`
 
 #### Edge Cases
-- [ ] If a feature with no original style info is clicked, use default values (radius: 5, width: 2)
-- [ ] If clicking the same feature again (while popup is open), don't recreate the highlight
+- [x] If a feature with no original style info is clicked, use default values (radius: 5, width: 2)
+- [x] If clicking the same feature again (while popup is open), don't recreate the highlight
 - [ ] If toggling a layer off while its feature is selected, clear the highlight
-- [ ] If panning/zooming while a feature is selected, maintain the highlight
+- [x] If panning/zooming while a feature is selected, maintain the highlight
 
 ### Integration Points
 
 #### MapPanel.vue Changes
-- [ ] Add highlight layer initialization in `onMapLoad`
-- [ ] Add `selectedFeature` ref to track current selection
-- [ ] Create `highlightFeature(feature, layerId)` function
-- [ ] Create `clearHighlight()` function
-- [ ] Call `highlightFeature()` when popup opens with a feature
-- [ ] Call `clearHighlight()` when popup closes
+- [x] Add highlight layer initialization in `onMapLoad`
+- [x] Add `selectedFeature` ref to track current selection
+- [x] Create `highlightFeature(feature, layerId)` function
+- [x] Create `clearHighlight()` function
+- [x] Call `highlightFeature()` when popup opens with a feature
+- [x] Call `clearHighlight()` when popup closes
 
 #### Popup Event Handling
-- [ ] Ensure popup close event triggers `clearHighlight()`
-- [ ] When clicking a new feature while popup is open, clear old highlight before showing new one
-- [ ] The popup should already emit events we can hook into - verify `MapPopup.vue` emits close/feature-change events
+- [x] Ensure popup close event triggers `clearHighlight()`
+- [x] When clicking a new feature while popup is open, clear old highlight before showing new one
+- [x] The popup should already emit events we can hook into - verify `MapPopup.vue` emits close/feature-change events
 
 #### Layer Toggle Interaction
 - [ ] Watch for layer visibility changes
@@ -330,21 +330,21 @@ When popup closes or another feature is selected:
 #### `src/utils/highlightHelpers.ts`
 Create a new utility file with the following functions:
 
-- [ ] `getFeatureStyleProperties(map: MapLibreMap, layerId: string, feature: any): { radius?: number; width?: number }`
-  - [ ] Queries the layer's paint properties
-  - [ ] Evaluates expressions for the given feature
-  - [ ] Returns original style values or defaults
+- [x] `getFeatureStyleProperties(map: MapLibreMap, layerId: string, feature: any): { radius?: number; width?: number }`
+  - [x] Queries the layer's paint properties
+  - [x] Evaluates expressions for the given feature
+  - [x] Returns original style values or defaults
 
-- [ ] `createHighlightGeoJSON(feature: any, geometryType: string, originalStyle: any): GeoJSON`
-  - [ ] Converts feature geometry to highlight GeoJSON
-  - [ ] Adds calculated highlight size properties (`highlightRadius` or `highlightWidth`)
-  - [ ] Handles Polygon → LineString conversion for borders
-  - [ ] Returns FeatureCollection with single feature
+- [x] `createHighlightGeoJSON(feature: any, geometryType: string, originalStyle: any): GeoJSON`
+  - [x] Converts feature geometry to highlight GeoJSON
+  - [x] Adds calculated highlight size properties (`highlightRadius` or `highlightWidth`)
+  - [x] Handles Polygon → LineString conversion for borders
+  - [x] Returns FeatureCollection with single feature
 
-- [ ] `extractPolygonBorder(polygonCoordinates: number[][][]): number[][]`
-  - [ ] Takes polygon coordinates (array of rings)
-  - [ ] Returns just the outer ring as LineString coordinates
-  - [ ] Used to highlight polygon borders without fills
+- [x] `extractPolygonBorder(polygonCoordinates: number[][][]): number[][]`
+  - [x] Takes polygon coordinates (array of rings)
+  - [x] Returns just the outer ring as LineString coordinates
+  - [x] Used to highlight polygon borders without fills
 
 ### Testing Checklist
 

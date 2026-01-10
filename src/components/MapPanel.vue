@@ -549,6 +549,143 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
 
   return { radius: 5, width: 2 };
 }
+
+// ============================================================================
+// HIGHLIGHT LIFECYCLE FUNCTIONS
+// ============================================================================
+
+// Extract the outer ring coordinates from a polygon for highlighting the border
+// Polygons are arrays of rings (first is outer, rest are holes), we only want the outer ring
+function extractPolygonBorder(coordinates: number[][][]): number[][] {
+  if (!coordinates || coordinates.length === 0) {
+    return [];
+  }
+  return coordinates[0]; // Return the outer ring as LineString coordinates
+}
+
+// Build GeoJSON feature for highlighting based on geometry type
+// Creates a prominent highlight that's significantly larger than the original feature
+// so it's clearly visible on top of (and around) the selected feature
+function createHighlightGeoJSON(feature: SelectedFeature): GeoJSON.FeatureCollection {
+  const { geometry, geometryType, originalStyle } = feature;
+
+  // For Point geometries, add +3px to the original radius for visibility
+  if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+    const originalRadius = originalStyle.radius || 5;
+    const highlightRadius = originalRadius + 3;
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry,
+        properties: {
+          highlightRadius,
+        },
+      }],
+    };
+  }
+
+  // For LineString geometries, add +3px to the original width for visibility
+  if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
+    const originalWidth = originalStyle.width || 2;
+    const highlightWidth = originalWidth + 3;
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry,
+        properties: {
+          highlightWidth,
+        },
+      }],
+    };
+  }
+
+  // For Polygon geometries, extract the border and add +3px to the original width
+  // We only highlight the border, not the fill, for better visual clarity
+  if (geometryType === 'Polygon') {
+    const polygonCoords = (geometry as GeoJSON.Polygon).coordinates;
+    const borderCoords = extractPolygonBorder(polygonCoords);
+    const originalWidth = originalStyle.width || 2;
+    const highlightWidth = originalWidth + 3;
+
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: borderCoords,
+        },
+        properties: {
+          highlightWidth,
+        },
+      }],
+    };
+  }
+
+  // For MultiPolygon, convert each polygon's border to a LineString
+  if (geometryType === 'MultiPolygon') {
+    const multiPolygonCoords = (geometry as GeoJSON.MultiPolygon).coordinates;
+    const originalWidth = originalStyle.width || 2;
+    const highlightWidth = originalWidth + 3;
+
+    const features = multiPolygonCoords.map((polygonCoords) => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: extractPolygonBorder(polygonCoords),
+      },
+      properties: {
+        highlightWidth,
+      },
+    }));
+
+    return {
+      type: 'FeatureCollection',
+      features,
+    };
+  }
+
+  // Return empty collection for unsupported geometry types
+  return {
+    type: 'FeatureCollection',
+    features: [],
+  };
+}
+
+// Update highlight layer sources with the selected feature's geometry
+// Routes to the appropriate layer (circles or lines) based on geometry type
+function updateHighlightLayers(feature: SelectedFeature | null) {
+  if (!feature) {
+    clearHighlightLayers();
+    return;
+  }
+
+  const highlightGeoJSON = createHighlightGeoJSON(feature);
+
+  // Route to the appropriate highlight layer based on geometry type
+  if (feature.geometryType === 'Point' || feature.geometryType === 'MultiPoint') {
+    highlightCirclesSource.value = highlightGeoJSON;
+    highlightLinesSource.value = { type: 'FeatureCollection', features: [] };
+  } else {
+    // Lines, Polygons, and MultiPolygons all use the lines layer
+    highlightLinesSource.value = highlightGeoJSON;
+    highlightCirclesSource.value = { type: 'FeatureCollection', features: [] };
+  }
+}
+
+// Clear all highlight layers by resetting to empty feature collections
+function clearHighlightLayers() {
+  highlightCirclesSource.value = { type: 'FeatureCollection', features: [] };
+  highlightLinesSource.value = { type: 'FeatureCollection', features: [] };
+}
+
+// Watch for changes to selectedFeature and update highlights accordingly
+// This automatically syncs the highlight layers with feature selection/deselection
+watch(selectedFeature, (newFeature) => {
+  updateHighlightLayers(newFeature);
+});
 </script>
 
 <template>
@@ -567,7 +704,7 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
       <!-- Draw Tool -->
       <DrawTool position="bottom-left" />
 
-      <!-- Circle Layers -->
+      <!-- Circle Layers - positioned before highlight layers -->
       <CircleLayer
         v-for="layer in visibleCircleLayers"
         :key="layer.id"
@@ -575,10 +712,11 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :before-id="'highlight-circles'"
         @click="(e) => handleLayerClick(e, layer.id)"
       />
 
-      <!-- Fill Layers -->
+      <!-- Fill Layers - positioned before highlight layers -->
       <FillLayer
         v-for="layer in visibleFillLayers"
         :key="layer.id"
@@ -586,10 +724,11 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :before-id="'highlight-circles'"
         @click="(e) => handleLayerClick(e, layer.id)"
       />
 
-      <!-- Outline LineLayer for Fill Layers that have outlinePaint -->
+      <!-- Outline LineLayer for Fill Layers that have outlinePaint - positioned before highlight layers -->
       <LineLayer
         v-for="layer in visibleFillLayersWithOutline"
         :key="layer.id + '-outline'"
@@ -597,10 +736,11 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
         :source="getSource(layer)"
         :paint="getOutlinePaint(layer)"
         :minzoom="layer.minZoom"
+        :before-id="'highlight-lines'"
         @click="(e) => handleLayerClick(e, layer.id)"
       />
 
-      <!-- Line Layers -->
+      <!-- Line Layers - positioned before highlight layers -->
       <LineLayer
         v-for="layer in visibleLineLayers"
         :key="layer.id"
@@ -608,16 +748,20 @@ function getOriginalStyleProperties(layerId: string, layerType: string): { radiu
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :before-id="'highlight-lines'"
         @click="(e) => handleLayerClick(e, layer.id)"
       />
 
-      <!-- Highlight Layers - Rendered on top of all feature layers to show selected features -->
+      <!-- Highlight Layers - Must be last to render on top of all feature layers -->
+      <!-- These show the currently selected feature with electric blue highlighting -->
       <CircleLayer
+        key="highlight-circles-layer"
         id="highlight-circles"
         :source="{ type: 'geojson', data: highlightCirclesSource }"
         :paint="highlightCirclesPaint"
       />
       <LineLayer
+        key="highlight-lines-layer"
         id="highlight-lines"
         :source="{ type: 'geojson', data: highlightLinesSource }"
         :paint="highlightLinesPaint"
