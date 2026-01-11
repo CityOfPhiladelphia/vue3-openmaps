@@ -874,6 +874,7 @@ watch(currentFeatureIndex, () => {
       :navigation-controls="{ position: 'bottom-right' }"
       :geolocation-control="{ position: 'bottom-right' }"
       :map-search-control="{ position: 'top-left' }"
+      basemap-before-id="feature-layers-start"
       @zoom="onZoomChange"
       @click="closePopup"
       @moveend="onMoveEnd"
@@ -881,6 +882,15 @@ watch(currentFeatureIndex, () => {
     >
       <!-- Draw Tool -->
       <DrawTool position="bottom-left" />
+
+      <!-- Placeholder layer - always present to serve as before-id anchor for basemap layers -->
+      <!-- This ensures basemaps stay below all feature layers even when basemap sources change -->
+      <CircleLayer
+        key="feature-layers-start"
+        id="feature-layers-start"
+        :source="{ type: 'geojson', data: { type: 'FeatureCollection', features: [] } }"
+        :paint="{ 'circle-radius': 0 }"
+      />
 
       <!-- Circle Layers - positioned before highlight layers -->
       <CircleLayer
