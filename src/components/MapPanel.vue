@@ -172,6 +172,12 @@ function onMapLoad(map: any) {
 watch(
   () => props.visibleLayers.size,
   () => {
+    // Close any open popup when layer visibility changes
+    // This prevents showing data from a layer that's no longer visible
+    if (popupFeatures.value.length > 0) {
+      closePopup();
+    }
+
     if (currentBounds.value) {
       // Fetch data for any visible layers that don't have data yet
       fetchSpatialLayers(currentBounds.value);
