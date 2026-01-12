@@ -23,6 +23,7 @@
     "@fortawesome/vue-fontawesome": "^3.1.3",
     "@phila/phila-ui-core": "file:../phila-ui-4/packages/core",
     "@phila/phila-ui-map-core": "file:../phila-ui-4/packages/map-core",
+    "@turf/bbox-clip": "^7.3.1",
     "maplibre-gl": "^5.14.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",

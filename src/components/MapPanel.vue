@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { Map as MapComponent, CircleLayer, FillLayer, LineLayer, MapPopup, DrawTool } from "@phila/phila-ui-map-core";
 import type { LngLatLike, CircleLayerSpecification, LineLayerSpecification } from "maplibre-gl";
+import bboxClip from "@turf/bbox-clip";
 
 // Bounds type for spatial queries
 interface Bounds {
@@ -46,11 +47,17 @@ const layerData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 // Current map bounds (updated on moveend)
 const currentBounds = ref<Bounds | null>(null);
 
+// Layers with complex geometries that should be clipped to viewport bounds
+// This reduces MapLibre's rendering workload by only rendering visible portions
+const CLIP_TO_VIEWPORT_LAYER_IDS = ["fema-100-year-floodplain", "fema-500-year-floodplain"];
+
 // Helper to fetch features within a bounding box from ArcGIS FeatureServer
 // Automatically paginates if more than 2000 features exist in the bounds
+// For configured layers, clips geometries to viewport bounds to improve rendering performance
 async function fetchFeaturesInBounds(
   url: string,
   bounds: Bounds,
+  layerId: string,
   where?: string
 ): Promise<GeoJSON.FeatureCollection> {
   const whereClause = encodeURIComponent(where || "1=1");
@@ -91,6 +98,31 @@ async function fetchFeaturesInBounds(
     }
   }
 
+  // Clip geometries to viewport bounds for configured layers
+  // This reduces MapLibre's rendering workload - similar to how Leaflet only rendered visible portions
+  if (CLIP_TO_VIEWPORT_LAYER_IDS.includes(layerId)) {
+    const bboxArray: [number, number, number, number] = [bounds.west, bounds.south, bounds.east, bounds.north];
+
+    allFeatures = allFeatures.map(feature => {
+      // Only clip polygon geometries (the complex ones causing performance issues)
+      if (feature.geometry &&
+          (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon')) {
+        try {
+          // Clip the feature to the viewport bounds
+          // Type assertion needed because we've already verified it's a Polygon or MultiPolygon
+          const clipped = bboxClip(feature as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>, bboxArray);
+          return clipped;
+        } catch (err) {
+          // If clipping fails, return the original feature
+          console.warn(`Failed to clip feature in ${layerId}:`, err);
+          return feature;
+        }
+      }
+      // Return non-polygon features unchanged
+      return feature;
+    });
+  }
+
   return {
     type: "FeatureCollection",
     features: allFeatures,
@@ -104,7 +136,7 @@ async function fetchLayers(bounds: Bounds) {
     if (props.visibleLayers.has(config.id)) {
       emit("layerLoading", config.id, true);
       try {
-        const data = await fetchFeaturesInBounds(config.url, bounds, config.where);
+        const data = await fetchFeaturesInBounds(config.url, bounds, config.id, config.where);
         layerData.value = { ...layerData.value, [config.id]: data };
         emit("layerError", config.id, null);
       } catch (err) {
