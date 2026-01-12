@@ -262,7 +262,7 @@ function coerceMatchValue(value: string | number): string {
 /**
  * Convert Esri Simple renderer to MapLibre paint
  */
-function convertSimpleRenderer(renderer: EsriRenderer, layerOpacity?: number): RendererResult {
+function convertSimpleRenderer(renderer: EsriRenderer, layerOpacity?: number, layerTitle?: string): RendererResult {
   const symbol = renderer.symbol;
   const geomType = detectGeometryType(symbol);
 
@@ -278,9 +278,22 @@ function convertSimpleRenderer(renderer: EsriRenderer, layerOpacity?: number): R
     // Use transparent color when alpha is 0 or color is null to ensure no fill is rendered
     const fillColor = fillAlpha === 0 ? 'rgba(0, 0, 0, 0)' : esriColorToCSS(symbol.color);
 
+    // If symbol color already has transparency (alpha < 255), that transparency is baked into fillColor
+    // In this case, use fill-opacity: 1.0 to avoid double-applying opacity
+    // Otherwise, use the layer's opacity value
+    const fillOpacity = fillAlpha === 0 ? 0 : (fillAlpha < 255 ? 1.0 : convertOpacity(layerOpacity));
+
+    console.log(`[Transformer] Fill layer opacity calculation for "${layerTitle}":`, {
+      symbolColor: symbol.color,
+      fillAlpha,
+      layerOpacity,
+      fillOpacity,
+      fillColor
+    });
+
     paint = {
       'fill-color': fillColor,
-      'fill-opacity': fillAlpha === 0 ? 0 : convertOpacity(layerOpacity),
+      'fill-opacity': fillOpacity,
     };
 
     // For fill layers with visible outlines, create separate outline paint
@@ -736,7 +749,8 @@ function convertColorInfoRenderer(
 export function transformEsriRenderer(
   drawingInfo?: EsriDrawingInfo,
   layerOpacity?: number,
-  customLabelMap?: Map<string, string>
+  customLabelMap?: Map<string, string>,
+  layerTitle?: string
 ): RendererResult {
   if (!drawingInfo?.renderer) {
     console.warn('[Transformer] No renderer found in drawingInfo - layer will use service default (not available in WebMap)');
@@ -749,7 +763,7 @@ export function transformEsriRenderer(
 
   switch (renderer.type) {
     case 'simple':
-      return convertSimpleRenderer(renderer, layerOpacity);
+      return convertSimpleRenderer(renderer, layerOpacity, layerTitle);
     case 'uniqueValue':
       return convertUniqueValueRenderer(renderer, layerOpacity, customLabelMap);
     case 'classBreaks':
@@ -1148,7 +1162,8 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
       const { paint, legend, geomType, outlinePaint } = transformEsriRenderer(
         drawingInfo,
         layer.opacity,
-        serviceLabelMap
+        serviceLabelMap,
+        layer.title
       );
 
       console.log(`[Transformer] Layer "${layer.title}" - Result: geomType=${geomType}, hasOutlinePaint=${!!outlinePaint}`);

@@ -294,10 +294,37 @@ function getDynamicPaint(layer: any) {
   const color = paint[colorKey];
 
   // Check if color has alpha channel (rgba format)
+  // If the transformer set opacity to 1.0 AND the color has transparency,
+  // it means the transformer intentionally moved opacity to the color channel
+  // In this case, don't override with the slider's initial value
+  const transformerSetOpacityToOne = paint[opacityKey] === 1.0;
+  const colorHasAlpha = typeof color === 'string' && color.startsWith('rgba(');
+
+  if (transformerSetOpacityToOne && colorHasAlpha) {
+    // Transformer handled opacity via color alpha channel
+    // Only apply slider if user has adjusted it (slider !== 1.0)
+    if (sliderOpacity === 1.0) {
+      // User hasn't adjusted slider, keep transformer's values
+      return paint;
+    } else {
+      // User adjusted slider, apply it by multiplying with color alpha
+      // Extract alpha from rgba and combine with slider
+      const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+      if (match && match[4]) {
+        const [, r, g, b, alpha] = match;
+        const finalAlpha = parseFloat(alpha) * sliderOpacity;
+        paint[colorKey] = `rgba(${r}, ${g}, ${b}, ${finalAlpha})`;
+        paint[opacityKey] = 1.0;
+      }
+      return paint;
+    }
+  }
+
+  // Standard case: slider controls opacity directly
+  // Check if color has alpha channel (rgba format)
   // If so, extract the alpha and replace color with fully opaque version
   // This allows the slider to control the full 0-100% opacity range
-  // The layer will start at its configured opacity, but can reach 100% when slider is maxed
-  if (typeof color === 'string' && color.startsWith('rgba(')) {
+  if (colorHasAlpha) {
     const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
     if (match) {
       const [, r, g, b] = match;
