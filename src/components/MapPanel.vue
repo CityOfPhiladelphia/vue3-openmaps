@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { Map as MapComponent, CircleLayer, FillLayer, LineLayer, MapPopup, DrawTool } from "@phila/phila-ui-map-core";
 import type { LngLatLike, CircleLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 
@@ -39,54 +39,15 @@ function onZoomChange(zoom: number) {
 // DATA FETCHING
 // ============================================================================
 
-// Helper to fetch all features from ArcGIS FeatureServer with pagination
-async function fetchAllFeatures(url: string, where?: string): Promise<GeoJSON.FeatureCollection> {
-  const whereClause = encodeURIComponent(where || "1=1");
-  const pageSize = 2000;
-  let offset = 0;
-  let allFeatures: GeoJSON.Feature[] = [];
-  let hasMore = true;
-
-  while (hasMore) {
-    const queryUrl = `${url}/query?where=${whereClause}&outFields=*&returnGeometry=true&resultRecordCount=${pageSize}&resultOffset=${offset}&f=geojson`;
-    const response = await fetch(queryUrl);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json() as GeoJSON.FeatureCollection;
-
-    if (data.features && data.features.length > 0) {
-      allFeatures = allFeatures.concat(data.features);
-      offset += data.features.length;
-      hasMore = data.features.length === pageSize;
-    } else {
-      hasMore = false;
-    }
-  }
-
-  return {
-    type: "FeatureCollection",
-    features: allFeatures,
-  };
-}
-
-
-// Store for pre-fetched paginated data (keyed by layer id)
-const paginatedData = ref<Record<string, GeoJSON.FeatureCollection>>({});
-
-// Layers that need pagination (more than 2000 features)
-const PAGINATED_LAYER_IDS = ["bike-network"];
-
-// Store for spatially-filtered data (keyed by layer id)
-// All non-paginated layers use spatial filtering (query by map bounds)
-const spatialData = ref<Record<string, GeoJSON.FeatureCollection>>({});
+// Store for layer data (keyed by layer id)
+// All layers use spatial filtering with automatic pagination
+const layerData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 
 // Current map bounds (updated on moveend)
 const currentBounds = ref<Bounds | null>(null);
 
 // Helper to fetch features within a bounding box from ArcGIS FeatureServer
+// Automatically paginates if more than 2000 features exist in the bounds
 async function fetchFeaturesInBounds(
   url: string,
   bounds: Bounds,
@@ -103,31 +64,48 @@ async function fetchFeaturesInBounds(
     spatialReference: { wkid: 4326 },
   });
 
-  const queryUrl = `${url}/query?where=${whereClause}&geometry=${encodeURIComponent(geometry)}&geometryType=esriGeometryEnvelope&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&f=geojson`;
+  const pageSize = 2000;
+  let offset = 0;
+  let allFeatures: GeoJSON.Feature[] = [];
+  let hasMore = true;
 
-  const response = await fetch(queryUrl);
+  // Fetch all features within bounds, paginating if necessary
+  while (hasMore) {
+    const queryUrl = `${url}/query?where=${whereClause}&geometry=${encodeURIComponent(geometry)}&geometryType=esriGeometryEnvelope&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&resultRecordCount=${pageSize}&resultOffset=${offset}&f=geojson`;
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const response = await fetch(queryUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json() as GeoJSON.FeatureCollection;
+
+    if (data.features && data.features.length > 0) {
+      allFeatures = allFeatures.concat(data.features);
+      offset += data.features.length;
+      // Continue if we got a full page (might be more)
+      hasMore = data.features.length === pageSize;
+    } else {
+      hasMore = false;
+    }
   }
 
-  const data = await response.json() as GeoJSON.FeatureCollection;
-  return data;
+  return {
+    type: "FeatureCollection",
+    features: allFeatures,
+  };
 }
 
-// Fetch spatial layers when bounds change
-// All non-paginated layers use spatial filtering
-async function fetchSpatialLayers(bounds: Bounds) {
+// Fetch all visible layers for the current bounds
+async function fetchLayers(bounds: Bounds) {
   for (const { config } of props.layerList) {
-    // Skip paginated layers - they're loaded once on mount
-    if (PAGINATED_LAYER_IDS.includes(config.id)) continue;
-
-    // Fetch data for all visible non-paginated layers
+    // Fetch data for all visible layers
     if (props.visibleLayers.has(config.id)) {
       emit("layerLoading", config.id, true);
       try {
         const data = await fetchFeaturesInBounds(config.url, bounds, config.where);
-        spatialData.value = { ...spatialData.value, [config.id]: data };
+        layerData.value = { ...layerData.value, [config.id]: data };
         emit("layerError", config.id, null);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load";
@@ -143,7 +121,7 @@ async function fetchSpatialLayers(bounds: Bounds) {
 // Handle map moveend event
 function onMoveEnd(data: { center: { lng: number; lat: number }; zoom: number; bounds: Bounds }) {
   currentBounds.value = data.bounds;
-  fetchSpatialLayers(data.bounds);
+  fetchLayers(data.bounds);
 }
 
 // Handle map load event - get initial bounds and zoom
@@ -163,15 +141,15 @@ function onMapLoad(map: any) {
   const zoom = map.getZoom();
   emit("zoom", zoom);
 
-  // Fetch any spatial layers that are already visible
-  fetchSpatialLayers(currentBounds.value);
+  // Fetch any layers that are already visible
+  fetchLayers(currentBounds.value);
 }
 
 // Watch for visibility changes - fetch any newly visible layers
 // We watch the Set size because the Set is mutated (not replaced), so watching the Set itself won't trigger
 watch(
   () => props.visibleLayers.size,
-  () => {
+  async () => {
     // Close any open popup when layer visibility changes
     // This prevents showing data from a layer that's no longer visible
     if (popupFeatures.value.length > 0) {
@@ -179,31 +157,11 @@ watch(
     }
 
     if (currentBounds.value) {
-      // Fetch data for any visible layers that don't have data yet
-      fetchSpatialLayers(currentBounds.value);
+      // Fetch data for any newly visible layers
+      fetchLayers(currentBounds.value);
     }
   }
 );
-
-// Fetch paginated layers on mount
-onMounted(async () => {
-  for (const { config } of props.layerList) {
-    if (PAGINATED_LAYER_IDS.includes(config.id)) {
-      emit("layerLoading", config.id, true);
-      try {
-        const data = await fetchAllFeatures(config.url, config.where);
-        paginatedData.value = { ...paginatedData.value, [config.id]: data };
-        emit("layerError", config.id, null);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load";
-        emit("layerError", config.id, message);
-        console.error(`Error loading ${config.id}:`, err);
-      } finally {
-        emit("layerLoading", config.id, false);
-      }
-    }
-  }
-});
 
 // ============================================================================
 // LAYER FILTERING BY TYPE
@@ -212,15 +170,9 @@ function isVisible(layerId: string) {
   return props.visibleLayers.has(layerId);
 }
 
-// Check if layer has source ready
-// Paginated layers need data loaded on mount
-// All other layers use spatial filtering and need data fetched for current bounds
+// Check if layer has data ready to render
 function hasSourceReady(layer: any): boolean {
-  if (PAGINATED_LAYER_IDS.includes(layer.id)) {
-    return !!paginatedData.value[layer.id];
-  }
-  // All non-paginated layers use spatial filtering
-  return !!spatialData.value[layer.id];
+  return !!layerData.value[layer.id];
 }
 
 const visibleCircleLayers = computed(() =>
@@ -251,14 +203,7 @@ const visibleLineLayers = computed(() =>
 // GENERIC SOURCE & PAINT HELPERS
 // ============================================================================
 function getSource(layer: any) {
-  // Check if this layer uses paginated data (loaded once on mount)
-  if (PAGINATED_LAYER_IDS.includes(layer.id)) {
-    const data = paginatedData.value[layer.id];
-    // Data should always exist here because we filter with hasSourceReady()
-    return { type: "geojson" as const, data: data! };
-  }
-  // All other layers use spatial filtering (loaded by bounds)
-  const data = spatialData.value[layer.id];
+  const data = layerData.value[layer.id];
   // Data should always exist here because we filter with hasSourceReady()
   return { type: "geojson" as const, data: data! };
 }
@@ -280,9 +225,32 @@ function getDynamicPaint(layer: any) {
     return { ...layer.paint, 'fill-opacity': 0 };
   }
 
+  // Extract color key based on layer type
+  const colorKey =
+    layer.type === "circle" ? "circle-color" :
+    layer.type === "fill" ? "fill-color" :
+    "line-color";
+
+  const paint = { ...layer.paint };
+  const color = paint[colorKey];
+
+  // Check if color has alpha channel (rgba format)
+  // If so, extract the alpha and replace color with fully opaque version
+  // This allows the slider to control the full 0-100% opacity range
+  // The layer will start at its configured opacity, but can reach 100% when slider is maxed
+  if (typeof color === 'string' && color.startsWith('rgba(')) {
+    const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+    if (match) {
+      const [, r, g, b] = match;
+      // Replace color with fully opaque version so slider has full control
+      paint[colorKey] = `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+
   // Use the slider value as the final opacity
   // The slider represents absolute opacity (0.0 to 1.0)
-  return { ...layer.paint, [opacityKey]: sliderOpacity };
+  paint[opacityKey] = sliderOpacity;
+  return paint;
 }
 
 function getOutlinePaint(layer: any) {
