@@ -899,6 +899,389 @@ onBeforeUnmount(() => {
 - [ ] Consider debouncing the highlight update if it causes visual jitter
 - [ ] Popup content updates should be immediate (no debouncing)
 
+---
+
+## Phase 6.6: MapPanel.vue Refactoring
+
+**Goal**: Break up the 982-line MapPanel.vue component into more manageable, maintainable pieces using composables.
+
+**Priority**: Medium (complete Phase 6.5 items first before starting this refactor)
+
+### Why Refactor?
+
+- MapPanel.vue is 982 lines long - too large to easily understand and maintain
+- Complex logic is intertwined (data fetching, popup management, highlighting, layer filtering)
+- Testing individual features in isolation is difficult
+- Future framework extraction (Phase 8) will be easier with well-organized code
+
+### Refactoring Strategy: Composables First
+
+Use Vue 3 composables to extract logical concerns into separate files. This approach:
+- Keeps component structure intact (less risky than component splitting)
+- Enables isolated testing of each composable
+- Maintains single component in Vue DevTools (easier debugging)
+- Can be done incrementally (one composable at a time)
+
+### Recommended Refactorings (in priority order)
+
+#### 1. Extract `usePopupManager` Composable (~250 lines)
+
+**Location**: `src/composables/usePopupManager.ts`
+
+**What to extract** (lines 295-571 of MapPanel.vue):
+- State: `popupFeatures`, `popupLngLat`, `currentFeatureIndex`
+- Helper functions:
+  - `getLayerConfig()` - lookup layer config by ID
+  - `substituteTemplate()` - replace {fieldName} in templates
+  - `formatFieldValue()` - format dates, numbers, etc.
+  - `deduplicateFeatures()` - remove duplicate features
+  - `sortFeaturesByLayerOrder()` - sort by layer rendering order
+- Event handlers:
+  - `handleLayerClick()` - collect features at click point
+  - `closePopup()` - clear popup state
+  - `goToNextFeature()` - cycle to next feature
+  - `goToPreviousFeature()` - cycle to previous feature
+- Computed properties:
+  - `currentPopupFeature` - active feature being displayed
+  - `popupTitle` - popup title with template substitution
+  - `popupHtml` - formatted popup content HTML
+
+**Interface**:
+```typescript
+export function usePopupManager(
+  props: { layerList: LayerConfig[], visibleLayers: Set<string> },
+  mapInstance: Ref<MapLibreMap | null>
+) {
+  return {
+    // State
+    popupLngLat: Ref<LngLatLike | null>,
+    popupFeatures: Ref<PopupFeature[]>,
+    currentFeatureIndex: Ref<number>,
+
+    // Computed
+    currentPopupFeature: ComputedRef<PopupFeature | null>,
+    popupTitle: ComputedRef<string>,
+    popupHtml: ComputedRef<string>,
+
+    // Methods
+    handleLayerClick: (e: ClickEvent) => void,
+    closePopup: () => void,
+    goToNextFeature: () => void,
+    goToPreviousFeature: () => void,
+  }
+}
+```
+
+**Benefits**:
+- Isolates all popup-related logic in one place
+- Most complex single responsibility in the file
+- Clear inputs (layer config, map) and outputs (popup state, handlers)
+
+#### 2. Extract `useFeatureHighlight` Composable (~200 lines)
+
+**Location**: `src/composables/useFeatureHighlight.ts`
+
+**What to extract** (lines 574-866 of MapPanel.vue):
+- State:
+  - `highlightCirclesSource` - GeoJSON for highlighted points
+  - `highlightLinesSource` - GeoJSON for highlighted lines/polygons
+  - `selectedFeature` - currently highlighted feature with metadata
+- Paint configs:
+  - `highlightCirclesPaint` - electric blue circle styling
+  - `highlightLinesPaint` - electric blue line styling
+- Helper functions:
+  - `getGeometryType()` - determine Point/LineString/Polygon
+  - `getOriginalStyleProperties()` - extract original circle radius or line width
+  - `extractPolygonBorder()` - convert polygon to border LineString
+  - `createHighlightGeoJSON()` - build highlight feature with +3px sizing
+  - `updateHighlightLayers()` - update appropriate layer sources
+  - `clearHighlightLayers()` - reset to empty feature collections
+- Watchers:
+  - Watch `selectedFeature` → update highlight layers
+  - Watch `visibleLayers` → clear highlight if layer toggled off
+  - Watch `currentFeatureIndex` → update highlight when navigating
+
+**Interface**:
+```typescript
+export function useFeatureHighlight(
+  props: { layerList: LayerConfig[], visibleLayers: Set<string> },
+  currentPopupFeature: ComputedRef<PopupFeature | null>,
+  currentFeatureIndex: Ref<number>,
+  popupLngLat: Ref<LngLatLike | null>,
+  mapInstance: Ref<MapLibreMap | null>
+) {
+  return {
+    // State
+    selectedFeature: Ref<SelectedFeature | null>,
+
+    // Highlight sources (for map layers)
+    highlightCirclesSource: Ref<GeoJSON.FeatureCollection>,
+    highlightLinesSource: Ref<GeoJSON.FeatureCollection>,
+
+    // Paint configs (for map layers)
+    highlightCirclesPaint: CircleLayerSpecification['paint'],
+    highlightLinesPaint: LineLayerSpecification['paint'],
+
+    // Methods
+    clearHighlightLayers: () => void,
+  }
+}
+```
+
+**Benefits**:
+- Self-contained feature with complex geometry manipulation
+- Coordinates with popup but can work independently
+- Clear separation of concerns
+
+#### 3. Extract `useLayerDataFetching` Composable (~180 lines)
+
+**Location**: `src/composables/useLayerDataFetching.ts`
+
+**What to extract** (lines 38-206 of MapPanel.vue):
+- State:
+  - `paginatedData` - pre-fetched data for large layers
+  - `spatialData` - dynamically fetched data by bounds
+  - `currentBounds` - current map viewport bounds
+- Helper functions:
+  - `fetchAllFeatures()` - paginated fetch for >2000 features
+  - `fetchFeaturesInBounds()` - spatial query by bounding box
+  - `fetchSpatialLayers()` - fetch all visible layers in bounds
+- Event handlers:
+  - `onMapLoad()` - get initial bounds, emit zoom, fetch visible layers
+  - `onMoveEnd()` - update bounds, fetch layers for new viewport
+- Lifecycle:
+  - `onMounted()` - fetch paginated layers once
+  - Watch `visibleLayers` → fetch newly visible layers
+
+**Interface**:
+```typescript
+export function useLayerDataFetching(
+  props: { layerList: LayerConfig[], visibleLayers: Set<string> },
+  emit: (event: 'layerLoading' | 'layerError' | 'zoom', ...args: any[]) => void
+) {
+  return {
+    // State
+    paginatedData: Ref<Record<string, GeoJSON.FeatureCollection>>,
+    spatialData: Ref<Record<string, GeoJSON.FeatureCollection>>,
+    currentBounds: Ref<Bounds | null>,
+
+    // Event handlers (to bind in template)
+    onMapLoad: (map: MapLibreMap) => void,
+    onMoveEnd: (data: MoveEndData) => void,
+  }
+}
+```
+
+**Benefits**:
+- Clear responsibility: managing data loading
+- Separates fetching concerns from rendering concerns
+- Easy to test data fetching in isolation
+
+#### 4. Extract `useLayerFiltering` Composable (~100 lines)
+
+**Location**: `src/composables/useLayerFiltering.ts`
+
+**What to extract** (lines 210-292 of MapPanel.vue):
+- Helper functions:
+  - `isVisible()` - check if layer is toggled on
+  - `hasSourceReady()` - check if layer data is loaded
+  - `getSource()` - get GeoJSON source for a layer
+  - `getLayerOpacity()` - get opacity from props or default
+  - `getDynamicPaint()` - merge layer paint with opacity slider
+  - `getOutlinePaint()` - get outline paint with opacity
+- Computed properties:
+  - `visibleCircleLayers` - filtered circle layers
+  - `visibleFillLayers` - filtered fill layers
+  - `visibleFillLayersWithOutline` - fill layers that need outlines
+  - `visibleLineLayers` - filtered line layers
+
+**Interface**:
+```typescript
+export function useLayerFiltering(
+  props: { layerList: LayerConfig[], visibleLayers: Set<string>, layerOpacities: Record<string, number> },
+  paginatedData: Ref<Record<string, GeoJSON.FeatureCollection>>,
+  spatialData: Ref<Record<string, GeoJSON.FeatureCollection>>
+) {
+  return {
+    // Computed
+    visibleCircleLayers: ComputedRef<LayerConfig[]>,
+    visibleFillLayers: ComputedRef<LayerConfig[]>,
+    visibleFillLayersWithOutline: ComputedRef<LayerConfig[]>,
+    visibleLineLayers: ComputedRef<LayerConfig[]>,
+
+    // Methods
+    getSource: (layer: LayerConfig) => GeoJSONSource,
+    getDynamicPaint: (layer: LayerConfig) => any,
+    getOutlinePaint: (layer: LayerConfig) => any,
+  }
+}
+```
+
+**Benefits**:
+- Pure functions and simple computeds
+- Could also be utility module instead of composable
+- Centralizes layer filtering logic
+
+#### 5. Extract Field Formatting Utilities (~50 lines)
+
+**Location**: `src/utils/popupFormatters.ts`
+
+**What to extract** (lines 340-383 of MapPanel.vue):
+- `formatFieldValue()` - pure function with date/number logic
+- `PopupFieldFormat` interface
+- `PopupField` interface
+
+**Interface**:
+```typescript
+export interface PopupFieldFormat {
+  dateFormat?: string;
+  digitSeparator?: boolean;
+  places?: number;
+}
+
+export interface PopupField {
+  field: string;
+  label: string;
+  format?: PopupFieldFormat;
+}
+
+export function formatFieldValue(value: unknown, format?: PopupFieldFormat): string {
+  // Date formatting
+  // Number formatting with separators and decimal places
+  // String fallback
+}
+```
+
+**Benefits**:
+- Pure utility function with no dependencies
+- Easy to test
+- Reusable across components
+
+### Result After Refactoring
+
+**MapPanel.vue** would be ~200 lines:
+- Template (100 lines) - unchanged
+- Setup using 4-5 composables (50 lines)
+- Simple prop/emit definitions (30 lines)
+- Basic map lifecycle hooks (20 lines)
+
+**New files created:**
+- `src/composables/usePopupManager.ts` (~280 lines with types)
+- `src/composables/useFeatureHighlight.ts` (~230 lines with types)
+- `src/composables/useLayerDataFetching.ts` (~200 lines with types)
+- `src/composables/useLayerFiltering.ts` (~120 lines)
+- `src/utils/popupFormatters.ts` (~60 lines)
+
+**Example refactored setup:**
+```typescript
+<script setup lang="ts">
+import { usePopupManager } from '@/composables/usePopupManager'
+import { useFeatureHighlight } from '@/composables/useFeatureHighlight'
+import { useLayerDataFetching } from '@/composables/useLayerDataFetching'
+import { useLayerFiltering } from '@/composables/useLayerFiltering'
+
+const props = defineProps<{...}>()
+const emit = defineEmits<{...}>()
+
+// Data fetching
+const {
+  paginatedData,
+  spatialData,
+  currentBounds,
+  onMapLoad,
+  onMoveEnd,
+} = useLayerDataFetching(props, emit)
+
+// Layer visibility & filtering
+const {
+  visibleCircleLayers,
+  visibleFillLayers,
+  visibleLineLayers,
+  getSource,
+  getDynamicPaint,
+} = useLayerFiltering(props, paginatedData, spatialData)
+
+// Popup management
+const {
+  popupLngLat,
+  popupHtml,
+  currentPopupFeature,
+  popupFeatures,
+  currentFeatureIndex,
+  handleLayerClick,
+  closePopup,
+  goToNextFeature,
+  goToPreviousFeature,
+} = usePopupManager(props, mapInstance)
+
+// Feature highlighting
+const {
+  selectedFeature,
+  highlightCirclesSource,
+  highlightLinesSource,
+  highlightPaint,
+} = useFeatureHighlight(props, currentPopupFeature, currentFeatureIndex, popupLngLat, mapInstance)
+</script>
+```
+
+### Implementation Approach
+
+**DO NOT start this refactoring until:**
+- [ ] All Phase 6.5 items are complete and tested
+- [ ] User confirms Phase 6.5 is working correctly in production
+- [ ] User explicitly requests starting the MapPanel.vue refactor
+
+**When ready to implement:**
+1. Create a feature branch: `refactor/mappanel-composables`
+2. Extract composables one at a time (start with `usePopupManager`)
+3. Test after each extraction - ensure functionality unchanged
+4. Commit each composable extraction separately (easier to review/rollback)
+5. Update MapPanel.vue to use all composables
+6. Comprehensive testing of all features
+7. Code review before merging to main
+
+### Testing Strategy
+
+For each composable:
+- [ ] Write unit tests for pure functions
+- [ ] Write integration tests for reactive behavior
+- [ ] Manually test in dev environment after extraction
+- [ ] Ensure no functionality lost or changed
+
+After complete refactor:
+- [ ] Full manual testing of all features
+- [ ] Layer toggling works
+- [ ] Popups show correct data
+- [ ] Multi-feature navigation works
+- [ ] Highlighting updates correctly
+- [ ] Opacity sliders work
+- [ ] Data fetching works (pagination + spatial filtering)
+
+### Benefits of This Refactor
+
+- **Maintainability**: Each composable has single, clear responsibility
+- **Testability**: Isolated logic can be tested independently
+- **Readability**: 200-line component is much easier to understand than 982 lines
+- **Framework Extraction** (Phase 8): Composables can be extracted to vue3-layerboard package
+- **Debugging**: Easier to trace bugs to specific composable
+- **Performance**: Can optimize individual composables without affecting others
+
+### Risks and Mitigation
+
+**Risk**: Breaking existing functionality during refactor
+- **Mitigation**: Extract one composable at a time, test thoroughly after each
+
+**Risk**: Introducing subtle bugs in reactive behavior
+- **Mitigation**: Write integration tests for each composable, manual testing
+
+**Risk**: Premature abstraction that makes code harder to change
+- **Mitigation**: Keep composables focused, don't over-engineer interfaces
+
+**Risk**: Time investment for no visible user benefit
+- **Mitigation**: Only do this if team has bandwidth, after all user-facing features are complete
+
+---
+
 ### Technical Notes
 
 #### MapLibre Feature Query

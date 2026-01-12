@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-// import "@phila/phila-ui-core/styles/variables.css";
-// import "@phila/phila-ui-core/styles/light-mode.css";
+import "@phila/phila-ui-core/styles/variables.css";
+import "@phila/phila-ui-core/styles/light-mode.css";
 
 // FontAwesome setup
 import { library } from '@fortawesome/fontawesome-svg-core'
