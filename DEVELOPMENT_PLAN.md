@@ -901,6 +901,232 @@ onBeforeUnmount(() => {
 
 ---
 
+## Phase 6.5.5: Layer Data Fetching Optimization
+
+**Goal**: Eliminate unnecessary layer re-fetching and enable parallel data loading for better performance.
+
+**Priority**: High (performance issue causing UX degradation)
+
+### Current Problems
+
+#### Problem 1: Unnecessary Re-fetching
+When a user toggles a layer on, ALL visible layers are re-fetched, including layers that already have loaded data.
+
+**Root Cause**:
+- `watch(() => props.visibleLayers.size)` triggers on any visibility change (MapPanel.vue:182)
+- The watcher calls `fetchLayers(currentBounds.value)` which loops through ALL visible layers (line 193)
+- No check exists for whether a layer already has data loaded (line 136)
+- Result: Turning on Layer B causes Layer A (already on) to reload unnecessarily
+
+**User Impact**:
+- Wasted network bandwidth
+- Slower layer loading experience
+- Loading spinners appear for layers that are already loaded
+- Unnecessary server load
+
+#### Problem 2: Sequential Loading
+Layers load one at a time instead of in parallel due to `await` inside the `for` loop.
+
+**Root Cause**:
+```typescript
+for (const { config } of props.layerList) {
+  if (props.visibleLayers.has(config.id)) {
+    await fetchFeaturesInBounds(...); // Blocks next iteration
+  }
+}
+```
+
+**User Impact**:
+- If 3 layers need loading, they load sequentially: Layer1 → Layer2 → Layer3
+- Total load time = sum of individual load times
+- Should load in parallel: Layer1 + Layer2 + Layer3 simultaneously
+- Total load time = max(Layer1, Layer2, Layer3) time
+
+### Solution Design
+
+#### Core Principle: Separate Concerns
+We need to distinguish between two different scenarios:
+1. **Visibility Change** → Only fetch newly visible layers (don't re-fetch existing)
+2. **Map Movement** → Re-fetch all visible layers for new bounds
+
+#### Approach: Track Previous Visibility State
+
+**Step 1: Add State Tracking**
+```typescript
+// Track which layers were visible in the previous render
+const previouslyVisibleLayers = ref<Set<string>>(new Set());
+```
+
+**Step 2: Modify Visibility Watcher**
+```typescript
+watch(
+  () => props.visibleLayers.size,
+  () => {
+    if (currentBounds.value) {
+      // Find newly visible layers (in current but not in previous)
+      const newlyVisibleLayerIds = Array.from(props.visibleLayers)
+        .filter(id => !previouslyVisibleLayers.value.has(id));
+
+      // Only fetch the newly visible layers
+      if (newlyVisibleLayerIds.length > 0) {
+        fetchSpecificLayers(currentBounds.value, newlyVisibleLayerIds);
+      }
+
+      // Update previous state
+      previouslyVisibleLayers.value = new Set(props.visibleLayers);
+    }
+  }
+);
+```
+
+**Step 3: Parallel Fetching**
+```typescript
+async function fetchSpecificLayers(bounds: Bounds, layerIds: string[]) {
+  // Build array of fetch promises
+  const fetchPromises = layerIds.map(async (layerId) => {
+    const config = props.layerList.find(l => l.config.id === layerId)?.config;
+    if (!config) return;
+
+    emit("layerLoading", layerId, true);
+    try {
+      const data = await fetchFeaturesInBounds(config.url, bounds, layerId, config.where);
+      layerData.value = { ...layerData.value, [layerId]: data };
+      emit("layerError", layerId, null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load";
+      emit("layerError", layerId, message);
+      console.error(`Error loading ${layerId}:`, err);
+    } finally {
+      emit("layerLoading", layerId, false);
+    }
+  });
+
+  // Wait for all fetches to complete in parallel
+  await Promise.all(fetchPromises);
+}
+```
+
+**Step 4: Refactor fetchLayers() for Map Movement**
+```typescript
+// For map movement (pan/zoom), re-fetch all visible layers
+async function fetchLayers(bounds: Bounds) {
+  const layerIds = props.layerList
+    .filter(({ config }) => props.visibleLayers.has(config.id))
+    .map(({ config }) => config.id);
+
+  await fetchSpecificLayers(bounds, layerIds);
+}
+```
+
+### Implementation Plan
+
+**Order of Operations**:
+1. ✅ Add `previouslyVisibleLayers` ref
+2. ✅ Create new `fetchSpecificLayers()` function with parallel fetching
+3. ✅ Update visibility watcher to only fetch newly visible layers
+4. ✅ Refactor `fetchLayers()` to use `fetchSpecificLayers()`
+5. ✅ Test visibility changes (should not re-fetch existing layers)
+6. ✅ Test map panning (should re-fetch all visible layers)
+7. ✅ Test parallel loading with multiple layers toggled on simultaneously
+
+### Testing Strategy
+
+**Test Case 1: Single Layer Toggle**
+- Start: No layers visible
+- Action: Turn on Layer A
+- Expected: Only Layer A fetches
+- Verify: Network tab shows 1 request
+
+**Test Case 2: Add Second Layer**
+- Start: Layer A visible and loaded
+- Action: Turn on Layer B
+- Expected: Only Layer B fetches, Layer A does NOT re-fetch
+- Verify: Network tab shows 1 request (Layer B only), Layer A spinner does not appear
+
+**Test Case 3: Map Pan**
+- Start: Layer A and Layer B visible
+- Action: Pan the map
+- Expected: Both Layer A and Layer B re-fetch for new bounds
+- Verify: Network tab shows 2 requests (one for each layer)
+
+**Test Case 4: Parallel Loading**
+- Start: No layers visible
+- Action: Turn on Layer A, Layer B, and Layer C simultaneously
+- Expected: All 3 layers fetch in parallel (not sequentially)
+- Verify: Network tab shows 3 overlapping requests, total time ≈ max(A, B, C) not sum(A + B + C)
+
+**Test Case 5: Toggle Off and On**
+- Start: Layer A visible and loaded
+- Action: Toggle Layer A off, then immediately on again
+- Expected: Layer A re-fetches (because it's newly visible again)
+- Verify: Network tab shows fetch request
+
+### Edge Cases to Handle
+
+**Edge Case 1: Rapid Toggling**
+If user rapidly toggles layers on/off, we might have:
+- Multiple visibility change events in quick succession
+- Need to ensure we don't fetch the same layer multiple times
+
+**Solution**: The visibility watcher already handles this because it compares current vs previous state. If Layer A is toggled off then on rapidly, the watcher will see it as "newly visible" and fetch it once.
+
+**Edge Case 2: Layer Toggled Off While Loading**
+If user toggles a layer off while it's still loading:
+- The fetch promise continues (can't cancel it easily)
+- The data arrives and updates `layerData.value`
+- But the layer is no longer in `visibleLayers`, so it won't render
+
+**Solution**: This is acceptable behavior. The data sits in `layerData.value` unused but available if the layer is toggled back on (won't need to re-fetch).
+
+**Edge Case 3: Bounds Change During Load**
+If the map is panned while layers are loading:
+- Old fetches complete with old bounds data
+- New fetches start with new bounds
+- Both update `layerData.value`
+
+**Solution**: The last fetch to complete will win (overwrites previous data). This is acceptable since we want the most recent bounds data.
+
+### Performance Benefits
+
+**Before**:
+- Toggle on Layer B → All layers (A, B, C, ...) re-fetch
+- If 5 layers are visible, that's 5 unnecessary fetches
+- Layers load sequentially: Time = T_A + T_B + T_C + ...
+
+**After**:
+- Toggle on Layer B → Only Layer B fetches
+- Layers load in parallel: Time = max(T_A, T_B, T_C, ...)
+- Significantly faster user experience
+
+**Estimated Improvement**:
+- If toggling on 1 layer when 5 are already visible: 5x fewer network requests
+- If loading 3 layers simultaneously: 3x faster load time (parallel vs sequential)
+
+### Code Location
+
+**File**: `src/components/MapPanel.vue`
+
+**Functions to Modify**:
+- Line 158: `fetchLayers()` - refactor to use new helper
+- Line 182: Visibility watcher - add diff logic
+- New: `fetchSpecificLayers()` - parallel fetching helper
+
+**New State**:
+- `previouslyVisibleLayers` ref - tracks previous visibility state
+
+### Risks and Mitigation
+
+**Risk**: More complex state management
+- **Mitigation**: Add detailed comments explaining the visibility diffing logic
+
+**Risk**: Race conditions with parallel fetches
+- **Mitigation**: Each layer ID is unique, so parallel fetches update different keys in `layerData.value` - no conflicts
+
+**Risk**: Breaking existing behavior
+- **Mitigation**: Comprehensive testing of all scenarios (visibility changes, map panning, layer toggling)
+
+---
+
 ## Phase 6.6: MapPanel.vue Refactoring
 
 **Goal**: Break up the 982-line MapPanel.vue component into more manageable, maintainable pieces using composables.

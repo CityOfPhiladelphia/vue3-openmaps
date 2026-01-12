@@ -47,6 +47,10 @@ const layerData = ref<Record<string, GeoJSON.FeatureCollection>>({});
 // Current map bounds (updated on moveend)
 const currentBounds = ref<Bounds | null>(null);
 
+// Track which layers were visible in the previous render
+// Used to determine which layers are newly visible and need fetching
+const previouslyVisibleLayers = ref<Set<string>>(new Set());
+
 // Layers with complex geometries that should be clipped to viewport bounds
 // This reduces MapLibre's rendering workload by only rendering visible portions
 const CLIP_TO_VIEWPORT_LAYER_IDS = ["fema-100-year-floodplain", "fema-500-year-floodplain"];
@@ -129,25 +133,37 @@ async function fetchFeaturesInBounds(
   };
 }
 
-// Fetch all visible layers for the current bounds
-async function fetchLayers(bounds: Bounds) {
-  for (const { config } of props.layerList) {
-    // Fetch data for all visible layers
-    if (props.visibleLayers.has(config.id)) {
-      emit("layerLoading", config.id, true);
-      try {
-        const data = await fetchFeaturesInBounds(config.url, bounds, config.id, config.where);
-        layerData.value = { ...layerData.value, [config.id]: data };
-        emit("layerError", config.id, null);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load";
-        emit("layerError", config.id, message);
-        console.error(`Error loading ${config.id}:`, err);
-      } finally {
-        emit("layerLoading", config.id, false);
-      }
+// Fetch specific layers in parallel
+// This is used to fetch only newly visible layers without re-fetching already loaded layers
+async function fetchSpecificLayers(bounds: Bounds, layerIds: string[]) {
+  // Build array of fetch promises for parallel loading
+  const fetchPromises = layerIds.map(async (layerId) => {
+    const config = props.layerList.find(l => l.config.id === layerId)?.config;
+    if (!config) return;
+
+    emit("layerLoading", layerId, true);
+    try {
+      const data = await fetchFeaturesInBounds(config.url, bounds, layerId, config.where);
+      layerData.value = { ...layerData.value, [layerId]: data };
+      emit("layerError", layerId, null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load";
+      emit("layerError", layerId, message);
+      console.error(`Error loading ${layerId}:`, err);
+    } finally {
+      emit("layerLoading", layerId, false);
     }
-  }
+  });
+
+  // Wait for all fetches to complete in parallel
+  await Promise.all(fetchPromises);
+}
+
+// Fetch all visible layers for the current bounds
+// This delegates to fetchSpecificLayers for parallel loading
+async function fetchLayers(bounds: Bounds) {
+  const visibleIds = [...props.visibleLayers];
+  await fetchSpecificLayers(bounds, visibleIds);
 }
 
 // Handle map moveend event
@@ -177,7 +193,7 @@ function onMapLoad(map: any) {
   fetchLayers(currentBounds.value);
 }
 
-// Watch for visibility changes - fetch any newly visible layers
+// Watch for visibility changes - fetch only newly visible layers
 // We watch the Set size because the Set is mutated (not replaced), so watching the Set itself won't trigger
 watch(
   () => props.visibleLayers.size,
@@ -189,8 +205,19 @@ watch(
     }
 
     if (currentBounds.value) {
-      // Fetch data for any newly visible layers
-      fetchLayers(currentBounds.value);
+      // Determine which layers are newly visible by comparing current vs previous visibility
+      const currentVisibleIds = new Set(props.visibleLayers);
+      const newlyVisibleIds = [...currentVisibleIds].filter(
+        id => !previouslyVisibleLayers.value.has(id)
+      );
+
+      // Update the tracking set for next time
+      previouslyVisibleLayers.value = new Set(currentVisibleIds);
+
+      // Only fetch data for newly visible layers (not already-visible ones)
+      if (newlyVisibleIds.length > 0) {
+        await fetchSpecificLayers(currentBounds.value, newlyVisibleIds);
+      }
     }
   }
 );
