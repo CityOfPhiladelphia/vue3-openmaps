@@ -2006,10 +2006,10 @@ Create working example applications that demonstrate framework usage.
 
 #### Set Up OpenMaps Example
 
-- [ ] Create `examples/openmaps/package.json` with workspace reference to framework
-- [ ] Create `examples/openmaps/vite.config.ts`
-- [ ] Update `examples/openmaps/src/main.ts` to use `useLayerboard`
-- [ ] Update `examples/openmaps/src/App.vue` to use framework components
+- [x] Create `examples/openmaps/package.json` with workspace reference to framework
+- [x] Create `examples/openmaps/vite.config.ts`
+- [x] Update `examples/openmaps/src/main.ts` to use `useLayerboard`
+- [x] Update `examples/openmaps/src/App.vue` to use framework components
 - [ ] Verify all 130+ layers still work
 - [ ] Test search, geolocation, basemaps, cyclomedia, pictometry
 

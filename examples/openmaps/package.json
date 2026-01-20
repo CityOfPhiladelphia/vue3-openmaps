@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@phila/layerboard": "workspace:*",
+    "@phila/phila-ui-core": ">=2.2.0",
+    "@phila/phila-ui-map-core": ">=0.0.2-beta.0",
     "vue": "^3.5.0",
     "pinia": "^3.0.0",
     "maplibre-gl": "^5.0.0"
