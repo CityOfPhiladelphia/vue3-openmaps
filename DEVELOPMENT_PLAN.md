@@ -1928,9 +1928,9 @@ Build Vue composables for state management and data fetching.
 
 #### Create useLayerboard.ts
 
-- [ ] Main initialization composable
-- [ ] Accepts `LayerboardConfig` object
-- [ ] Returns reactive state and methods:
+- [x] Main initialization composable
+- [x] Accepts `LayerboardConfig` object
+- [x] Returns reactive state and methods:
   ```typescript
   export function useLayerboard(config: LayerboardConfig) {
     const layerConfigs = ref<LayerConfig[]>([])

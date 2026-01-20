@@ -1,4 +1,4 @@
 // Framework composables
-export { useLayerboard } from './useLayerboard'
+export { useLayerboard, type UseLayerboardReturn } from './useLayerboard'
 export { useLayerConfig } from './useLayerConfig'
 export { useDataSource } from './useDataSource'
