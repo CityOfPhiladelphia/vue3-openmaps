@@ -1916,9 +1916,9 @@ Build the reusable components that consuming apps will use.
 
 #### Create LayerCheckboxSet.vue
 
-- [ ] Reusable component for toggling multiple layers
-- [ ] Props: `layers` (array of layer configs), `showLegend`, `showOpacity`
-- [ ] Integrates with LayerPanel state
+- [x] Reusable component for toggling multiple layers
+- [x] Props: `layers`, `visibleLayerIds`, `layerOpacities`, `loadingLayerIds`, `layerErrors`, `currentZoom`, `showLegend`, `showOpacity`
+- [x] Integrates with LayerPanel state via emits: `toggleLayer`, `setOpacity`
 
 ---
 
