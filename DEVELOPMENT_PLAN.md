@@ -1823,8 +1823,8 @@ Set up the framework as a publishable npm package.
 - [ ] Update `package.json` for library publishing:
   ```json
   {
-    "name": "@phila/vue3-layerboard",
-    "version": "0.1.0",
+    "name": "@phila/layerboard",
+    "version": "3.0.0-beta.0",
     "type": "module",
     "description": "Vue 3 + MapLibre mapping framework for City of Philadelphia applications",
     "main": "./dist/index.js",

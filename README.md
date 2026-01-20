@@ -14,7 +14,7 @@ A Vue 3 + MapLibre GL JS framework for building interactive map applications wit
 ## Installation
 
 ```sh
-npm install @phila/vue3-layerboard
+npm install @phila/layerboard
 ```
 
 ## Peer Dependencies
