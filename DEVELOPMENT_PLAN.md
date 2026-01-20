@@ -1740,9 +1740,11 @@ Transform vue3-openmaps into vue3-layerboard with framework code and example app
 
 #### Rename Repository
 
-- [ ] Rename GitHub repository from `vue3-openmaps` to `vue3-layerboard`
+**Note**: Repository rename should happen AFTER framework extraction is complete and tested locally.
+
+- [ ] Rename GitHub repository from `vue3-openmaps` to `vue3-layerboard` (do this on GitHub.com)
 - [ ] Update local git remote: `git remote set-url origin git@github.com:CityOfPhiladelphia/vue3-layerboard.git`
-- [ ] Update README.md title and description
+- [ ] Update README.md title and description to reflect new framework purpose
 
 #### Create New Directory Structure
 
