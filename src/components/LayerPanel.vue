@@ -42,16 +42,13 @@ const props = withDefaults(
 );
 
 // Emit events for layer changes
+// Note: Vue converts @kebab-case listeners to camelCase, so we emit camelCase
 const emit = defineEmits<{
   /** Emitted when a layer's visibility is toggled */
-  (e: "toggle-layer", layerId: string): void;
-  /** Emitted when a layer's opacity is changed */
-  (e: "set-opacity", layerId: string, opacity: number): void;
-  /** Emitted when the search query changes */
-  (e: "update-search", query: string): void;
-  // Legacy event names for backwards compatibility
   (e: "toggleLayer", layerId: string): void;
+  /** Emitted when a layer's opacity is changed */
   (e: "setOpacity", layerId: string, opacity: number): void;
+  /** Emitted when the search query changes */
   (e: "updateSearch", query: string): void;
 }>();
 
@@ -113,20 +110,17 @@ function isLayerAvailableAtZoom(config: LayerConfig): boolean {
 
 function onSearchInput(event: Event) {
   const input = event.target as HTMLInputElement;
-  emit("update-search", input.value);
-  emit("updateSearch", input.value); // Legacy
+  emit("updateSearch", input.value);
 }
 
 function onToggleLayer(layerId: string) {
-  emit("toggle-layer", layerId);
-  emit("toggleLayer", layerId); // Legacy
+  emit("toggleLayer", layerId);
 }
 
 function onOpacityChange(layerId: string, event: Event) {
   const input = event.target as HTMLInputElement;
   const opacity = parseFloat(input.value);
-  emit("set-opacity", layerId, opacity);
-  emit("setOpacity", layerId, opacity); // Legacy
+  emit("setOpacity", layerId, opacity);
 }
 </script>
 
