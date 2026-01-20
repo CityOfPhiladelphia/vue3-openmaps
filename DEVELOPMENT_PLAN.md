@@ -1976,7 +1976,7 @@ Define TypeScript interfaces for the framework API.
 
 #### Create src/types/config.ts
 
-- [ ] Define `LayerboardConfig` interface:
+- [x] Define `LayerboardConfig` interface:
   ```typescript
   export interface LayerboardConfig {
     webMapId: string
@@ -1995,8 +1995,8 @@ Define TypeScript interfaces for the framework API.
 
 #### Create src/types/layer.ts
 
-- [ ] Move and expand `LayerConfig` interface from current `layers/types.ts`
-- [ ] Add supporting types: `LegendItem`, `PopupConfig`, etc.
+- [x] Move and expand `LayerConfig` interface from current `layers/types.ts`
+- [x] Add supporting types: `LegendItem`, `PopupConfig`, etc.
 
 ---
 
