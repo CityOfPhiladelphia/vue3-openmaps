@@ -1,43 +1,81 @@
 {
-  "name": "vue3-openmaps",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@phila/layerboard",
+  "version": "3.0.0-beta.0",
   "type": "module",
+  "description": "Vue 3 + MapLibre mapping framework for City of Philadelphia applications",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.mjs"
+    },
+    "./composables": {
+      "types": "./dist/composables/index.d.ts",
+      "import": "./dist/composables/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
+    "build": "vue-tsc --build && vite build",
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "build:static": "run-p type-check \"build-only:static {@}\" --",
-    "build:dynamic": "run-p type-check \"build-only:dynamic {@}\" --",
+    "dev:openmaps": "vite --config examples/openmaps/vite.config.ts",
+    "dev:streetsmartphl": "vite --config examples/streetsmartphl/vite.config.ts",
     "preview": "vite preview",
-    "build-only": "vite build",
-    "build-only:static": "vite build --mode static",
-    "build-only:dynamic": "vite build --mode dynamic",
     "type-check": "vue-tsc --build"
   },
-  "dependencies": {
+  "peerDependencies": {
+    "@phila/phila-ui-core": ">=2.2.0",
+    "@phila/phila-ui-map-core": ">=0.0.2-beta.0",
+    "maplibre-gl": "^5.0.0",
+    "pinia": "^3.0.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/vue-fontawesome": "^3.1.3",
     "@phila/phila-ui-core": "2.2.1-beta.0",
     "@phila/phila-ui-map-core": "0.0.2-beta.3",
-    "@turf/bbox-clip": "^7.3.1",
-    "maplibre-gl": "^5.14.0",
-    "pinia": "^3.0.4",
-    "vue": "^3.5.26",
-    "vue-router": "^4.6.4"
-  },
-  "devDependencies": {
     "@tsconfig/node24": "^24.0.3",
+    "@turf/bbox-clip": "^7.3.1",
     "@types/node": "^24.10.4",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue/tsconfig": "^0.8.1",
+    "maplibre-gl": "^5.14.0",
     "npm-run-all2": "^8.0.4",
+    "pinia": "^3.0.4",
     "typescript": "~5.9.3",
     "vite": "^7.3.0",
+    "vite-plugin-dts": "^4.5.4",
     "vite-plugin-vue-devtools": "^8.0.5",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4",
     "vue-tsc": "^3.2.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CityOfPhiladelphia/vue3-layerboard.git"
+  },
+  "keywords": [
+    "vue",
+    "vue3",
+    "maplibre",
+    "gis",
+    "mapping",
+    "philadelphia"
+  ],
+  "author": "City of Philadelphia",
+  "license": "MIT"
 }

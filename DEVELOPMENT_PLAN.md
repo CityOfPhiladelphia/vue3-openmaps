@@ -1820,7 +1820,7 @@ Set up the framework as a publishable npm package.
 
 #### Update Root package.json
 
-- [ ] Update `package.json` for library publishing:
+- [x] Update `package.json` for library publishing:
   ```json
   {
     "name": "@phila/layerboard",
@@ -1863,7 +1863,7 @@ Set up the framework as a publishable npm package.
 
 #### Configure Vite for Library Mode
 
-- [ ] Update `vite.config.ts` for library build:
+- [x] Update `vite.config.ts` for library build:
   ```typescript
   import { defineConfig } from 'vite'
   import vue from '@vitejs/plugin-vue'

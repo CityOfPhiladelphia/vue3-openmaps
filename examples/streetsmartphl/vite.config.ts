@@ -4,9 +4,14 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  root: fileURLToPath(new URL('.', import.meta.url)),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('../../src', import.meta.url)),
+      '@layerboard': fileURLToPath(new URL('../../src', import.meta.url)),
     },
+  },
+  server: {
+    port: 5174,
   },
 })
