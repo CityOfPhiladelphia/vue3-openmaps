@@ -1746,7 +1746,7 @@ Transform vue3-openmaps into vue3-layerboard with framework code and example app
 
 #### Create New Directory Structure
 
-- [ ] Create the following structure:
+- [x] Create the following structure:
   ```
   vue3-layerboard/
   ├── src/                        # Framework source code
