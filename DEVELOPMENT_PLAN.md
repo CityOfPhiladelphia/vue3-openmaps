@@ -1902,10 +1902,10 @@ Build the reusable components that consuming apps will use.
 
 #### Refactor LayerPanel.vue
 
-- [ ] Make LayerPanel accept props for configuration instead of hardcoding
-- [ ] Add `mode` prop: `'flat' | 'topics'`
-- [ ] Add slot for custom topic components in topics mode
-- [ ] Emit events for layer changes instead of directly mutating state
+- [x] Make LayerPanel accept props for configuration instead of hardcoding
+- [x] Add `mode` prop: `'flat' | 'topics'`
+- [x] Add slot for custom topic components in topics mode
+- [x] Emit events for layer changes instead of directly mutating state
 
 #### Create TopicAccordion.vue
 
