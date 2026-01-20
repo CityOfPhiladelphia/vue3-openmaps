@@ -1726,11 +1726,11 @@ vue3-openmaps/src/
 - [x] GitHub workflows and deployment scripts
 
 **Dependencies** (peer dependencies of the framework):
-- [ ] `@phila/phila-ui-map-core` - Map components (MapLibreMap, etc.)
-- [ ] `@phila/phila-ui-core` - UI components and utilities
-- [ ] `@phila/phila-ui-search` - Search component
-- [ ] `maplibre-gl` - Map library
-- [ ] `vue` - Framework
+- [x] `@phila/phila-ui-map-core` - Map components (MapLibreMap, etc.) - v0.0.2-beta.3
+- [x] `@phila/phila-ui-core` - UI components and utilities - v2.2.1-beta.0
+- [x] `@phila/phila-ui-search` - Search component (transitive dependency via phila-ui-core, v1.0.6-beta.2)
+- [x] `maplibre-gl` - Map library - v5.14.0
+- [x] `vue` - Framework - v3.5.26
 
 ---
 
