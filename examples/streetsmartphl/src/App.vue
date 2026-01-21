@@ -14,6 +14,7 @@ import LayerCheckboxSet from '@/components/LayerCheckboxSet.vue'
 import LayerRadioButtonSet from '@/components/LayerRadioButtonSet.vue'
 import CollectionDayLegend from './components/CollectionDayLegend.vue'
 import PlowDeploymentLegend from './components/PlowDeploymentLegend.vue'
+import SweepLegend from './components/SweepLegend.vue'
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 import type { LayerConfig, LayerDisplayOptions, TiledLayerConfig } from '@/types/layer'
 import type { DataSourceConfig } from '@/types/dataSource'
@@ -68,6 +69,44 @@ const layerDisplayOptions: Record<string, LayerDisplayOptions> = {
   },
   'five-year-paving-plan': {
     shouldShowSlider: false,
+  },
+
+  // SweepPHL - All layers controlled via SweepLegend component (no individual checkboxes)
+  'all-route-locations': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  'swept-streets': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  '2022-litter-index': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  // Day-specific route layers (Mon-Thu)
+  'monday-route-locations': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  'tuesday-route-locations': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  'wednesday-route-locations': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
+  },
+  'thursday-route-locations': {
+    shouldShowCheckbox: false,
+    shouldShowSlider: false,
+    shouldShowLegendBox: false,
   },
 }
 
@@ -134,10 +173,15 @@ const paveLayerIds = [
 const plowLayerIds: string[] = []
 
 // SweepPHL topic - Street sweeping
+// Layer IDs are kebab-cased versions of WebMap layer titles (after removing group prefix)
 const sweepLayerIds = [
   'all-route-locations',
   'swept-streets',
   '2022-litter-index',
+  'monday-route-locations',
+  'tuesday-route-locations',
+  'wednesday-route-locations',
+  'thursday-route-locations',
 ]
 
 // ============================================================================
@@ -223,6 +267,7 @@ const pictometryCredentials: PictometryCredentials = {
 // DEFAULT TOPIC LAYERS MAP
 // ============================================================================
 // Maps topic ID to layers that auto-activate when that topic opens
+// Note: sweep is NOT included - SweepLegend component manages its own layer visibility
 const defaultTopicLayersMap: Record<string, string[]> = {
   pickup: pickupDefaultLayers,
   permit: permitDefaultLayers,
@@ -425,6 +470,25 @@ function getPaveNotice(dataSourcesState: Record<string, { data: unknown }>): str
 
   if (paveNotices.length > 0) {
     return paveNotices[0].Description
+  }
+  return null
+}
+
+// ============================================================================
+// DATA SOURCE HELPERS FOR SWEEPPHL
+// ============================================================================
+
+// Get sweep-specific notices from the notices data source
+function getSweepNotice(dataSourcesState: Record<string, { data: unknown }>): string | null {
+  const noticesData = dataSourcesState?.notices?.data as Notice[] | null
+  if (!noticesData || !Array.isArray(noticesData)) return null
+
+  const sweepNotices = noticesData.filter(
+    (n) => n.Type?.toLowerCase() === 'sweepphl'
+  )
+
+  if (sweepNotices.length > 0) {
+    return sweepNotices[0].Description
   }
   return null
 }
@@ -798,23 +862,51 @@ function getPlowTiledLayersForDeployment(deploymentType: string): string[] {
           icon="broom"
           :expanded="expandedTopic === 'sweep'"
           :layer-ids="sweepLayerIds"
-          @toggle="(expanded) => onTopicToggle('sweep', expanded)"
+          @toggle="(expanded) => {
+            onTopicToggle('sweep', expanded)
+            // SweepLegend manages layers when open, but we need to turn them all off when closing
+            if (!expanded) {
+              setLayersVisible(sweepLayerIds, false)
+            }
+          }"
         >
-          <LayerCheckboxSet
-            :layers="getLayersForTopic(layers, sweepLayerIds)"
-            :visible-layer-ids="visibleLayers"
-            :layer-opacities="layerOpacities"
-            :loading-layer-ids="loadingLayers"
-            :layer-errors="layerErrors"
-            :current-zoom="currentZoom"
-            :show-opacity="true"
-            :show-legend="true"
-            @toggle-layer="toggleLayer"
-            @set-opacity="setOpacity"
-          />
-          <p v-if="getLayersForTopic(layers, sweepLayerIds).length === 0" class="no-layers">
-            No matching layers found
+          <!-- Topic intro paragraph -->
+          <p class="topic-intro">
+            View status of Mechanical Street Sweep Operations.
           </p>
+
+          <!-- Disclaimer popover link -->
+          <details class="disclaimer-details">
+            <summary class="disclaimer-link">Read disclaimer</summary>
+            <div class="disclaimer-content">
+              <p>
+                Disclaimer: The Streets Department is beta testing GPS technology.
+                Outages and interruptions may occur. The Streets Department will
+                do its best to notify the public if outages occur.
+              </p>
+              <p>
+                Note: This technology processes data every 15 minutes. A treated street
+                status can take 15 to 45 minutes to appear on the map.
+              </p>
+            </div>
+          </details>
+
+          <!-- Notices alert (from notices data source) -->
+          <div
+            v-if="getSweepNotice(dataSourcesState)"
+            class="notice-alert"
+          >
+            <span class="notice-icon">⚠️</span>
+            <span v-html="getSweepNotice(dataSourcesState)"></span>
+          </div>
+
+          <!-- Sweep Legend with radio button layer selection -->
+          <!-- v-if ensures SweepLegend mounts only when topic opens, not on app load -->
+          <SweepLegend
+            v-if="expandedTopic === 'sweep'"
+            :visible-layer-ids="visibleLayers"
+            :set-layers-visible="setLayersVisible"
+          />
         </TopicAccordion>
       </div>
     </template>
