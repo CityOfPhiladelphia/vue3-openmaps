@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@phila/layerboard": "workspace:*",
-    "@phila/phila-ui-core": ">=2.2.0",
-    "@phila/phila-ui-map-core": ">=0.0.2-beta.0",
+    "@phila/phila-ui-core": "2.2.1-beta.0",
+    "@phila/phila-ui-map-core": "0.0.2-beta.4",
     "@fortawesome/fontawesome-svg-core": "^6.5.0",
     "@fortawesome/free-solid-svg-icons": "^6.5.0",
     "@fortawesome/vue-fontawesome": "^3.0.0",

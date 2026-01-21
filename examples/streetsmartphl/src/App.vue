@@ -573,6 +573,13 @@ function getPlowTiledLayersForDeployment(deploymentType: string): string[] {
     :data-sources="dataSources"
     :cyclomedia-config="cyclomediaConfig"
     :pictometry-credentials="pictometryCredentials"
+    search-control-position="top-left"
+    basemap-control-position="bottom-left"
+    navigation-control-position="bottom-left"
+    geolocation-control-position="bottom-left"
+    cyclomedia-button-position="bottom-left"
+    pictometry-button-position="bottom-left"
+    :draw-control-position="null"
   >
     <!-- Custom sidebar with topic accordions -->
     <template #sidebar="{ layers, visibleLayers, layerOpacities, loadingLayers, layerErrors, currentZoom, toggleLayer, setLayersVisible, setTiledLayerVisible, setOpacity, visibleTiledLayers, toggleTiledLayer, dataSourcesState, getDataSource }">

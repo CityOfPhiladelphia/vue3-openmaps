@@ -28,6 +28,10 @@ import { useApiDataSources } from '@/composables/useApiDataSources'
 // ============================================================================
 // PROPS
 // ============================================================================
+
+// Control position type for map controls
+type ControlPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
 const props = withDefaults(
   defineProps<{
     /** App title displayed in header */
@@ -58,6 +62,20 @@ const props = withDefaults(
     dataSources?: DataSourceConfig[]
     /** Layer style overrides - override paint/legend for specific layers by ID */
     layerStyleOverrides?: Record<string, LayerStyleOverride>
+    /** Position of basemap toggle/dropdown control */
+    basemapControlPosition?: ControlPosition
+    /** Position of zoom in/out navigation control */
+    navigationControlPosition?: ControlPosition
+    /** Position of geolocation (find me) control */
+    geolocationControlPosition?: ControlPosition
+    /** Position of address search control */
+    searchControlPosition?: ControlPosition
+    /** Position of draw tool control (set to null to remove) */
+    drawControlPosition?: ControlPosition | null
+    /** Position of Cyclomedia street view button */
+    cyclomediaButtonPosition?: ControlPosition
+    /** Position of Pictometry oblique imagery button */
+    pictometryButtonPosition?: ControlPosition
   }>(),
   {
     themeColor: '#0f4d90',
@@ -69,6 +87,13 @@ const props = withDefaults(
     tiledLayers: () => [],
     dataSources: () => [],
     layerStyleOverrides: () => ({}),
+    basemapControlPosition: 'top-right',
+    navigationControlPosition: 'bottom-right',
+    geolocationControlPosition: 'bottom-right',
+    searchControlPosition: 'top-left',
+    drawControlPosition: 'bottom-left',
+    cyclomediaButtonPosition: 'top-right',
+    pictometryButtonPosition: 'top-right',
   }
 )
 
@@ -502,6 +527,13 @@ onMounted(() => {
             :tiled-layer-opacities="tiledLayerOpacities"
             :cyclomedia-config="cyclomediaConfig"
             :pictometry-credentials="pictometryCredentials"
+            :basemap-control-position="basemapControlPosition"
+            :navigation-control-position="navigationControlPosition"
+            :geolocation-control-position="geolocationControlPosition"
+            :search-control-position="searchControlPosition"
+            :draw-control-position="drawControlPosition"
+            :cyclomedia-button-position="cyclomediaButtonPosition"
+            :pictometry-button-position="pictometryButtonPosition"
             @zoom="onZoomChange"
             @layer-loading="setLayerLoading"
             @layer-error="setLayerError"
