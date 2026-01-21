@@ -1547,629 +1547,850 @@ This phase transforms the vue3-openmaps codebase into the reusable vue3-layerboa
 - **Scope**: Repository rename, package structure, API design, publishing, and app migration
 - **Result**: Multiple City apps can use `@phila/vue3-layerboard` as a dependency
 
-### Architecture Analysis
+### Pre-Extraction Analysis
 
-#### Framework vs Application Code
+Before restructuring, analyze how the original layerboard framework was configured by existing apps to understand what the new framework needs to support.
 
-Before extraction, analyze the codebase and categorize files:
+#### Analyze Original OpenMaps Configuration
 
-- [ ] **Framework Code** (goes into package):
-  - [ ] Core components: LayerPanel, MapPanel, App structure components
-  - [ ] Utilities: webmap-transformer, layerConfigService, highlightHelpers, featureHelpers
-  - [ ] Type definitions: LayerConfig, WebMap types, component props/emits
-  - [ ] Services: AIS geocoding integration, spatial data fetching
-  - [ ] State management: Layer visibility, popup state, highlight state
-  - [ ] Styles: Component CSS that's framework-specific
+- [x] Review `openmaps/src/main.js` to understand how it configured the old `@phila/layerboard`
+- [x] Document configuration options used:
+  - [x] `customComps` - Custom Vue components (About modal)
+  - [x] `footerContent` - Footer links/buttons configuration
+  - [x] `bundled: true` - Bundle mode
+  - [x] `layerFilter: true` - Enable layer search/filter (flat list mode)
+  - [x] `router` - Vue router configuration
+  - [x] `geolocation` - Enable/disable with icon
+  - [x] `addressInput` - Search box configuration (width, position, placeholder)
+  - [x] `map` - Basemap, imagery, historic basemaps, center, click behavior
+  - [x] `cyclomedia` - Cyclomedia integration with credentials
+  - [x] `pictometry` - Pictometry integration (disabled in OpenMaps)
+  - [x] `baseConfig` - External CDN config URL
+  - [x] `webmapId` - ArcGIS WebMap ID
 
-- [ ] **Application-Specific Code** (stays in consumer repos):
-  - [ ] WebMap ID configuration
-  - [ ] App-specific header/footer/branding
-  - [ ] Custom layer panel modes (flat list vs topics)
-  - [ ] App-specific routing
-  - [ ] Environment configuration
-  - [ ] Build/deployment scripts
+#### Analyze Original StreetSmartPHL Configuration
 
-- [ ] **Shared Dependencies**:
-  - [ ] `@phila/phila-ui-map-core` - map components (already published)
-  - [ ] `@phila/phila-ui-core` - UI components (already published)
-  - [ ] `maplibre-gl` - map library
-  - [ ] `vue` - framework
+- [x] Review `StreetSmartPHL/src/main.js` to understand more complex layerboard usage
+- [x] Document additional configuration options:
+  - [x] `defaultPanel: 'topics'` - Topics-based UI instead of flat list
+  - [x] `topics: [...]` - Array of topic modules (pickup, permit, pave, plow, sweep)
+  - [x] `dataSources` - External data fetching modules
+  - [x] `tiledLayers` - Additional ArcGIS tiled layers beyond webmap
+  - [x] `components` - Info panel components array (infoBox, topic-set)
+  - [x] `initialPopover` - Splash screen configuration
+  - [x] `labelFields` - Custom label field mappings
+  - [x] `resetDataOnGeocode` - Data reset behavior
+  - [x] 8 custom components (splash screen, legends, status displays)
+  - [x] FontAwesome icon registration
 
-#### Configuration API Design
+#### Key Differences Between Apps
 
-Design the public API that consuming apps will use:
+- [x] Document differences:
+  - OpenMaps: flat layer list (`layerFilter: true`), router enabled, historic basemaps, 1 custom component
+  - StreetSmartPHL: topics accordion (`defaultPanel: 'topics'`), router disabled, no historic basemaps, 8 custom components, dataSources, tiledLayers, splash screen
 
-- [ ] Create `LayerboardConfig` interface:
-  ```typescript
-  interface LayerboardConfig {
-    /** Esri WebMap ID to load */
-    webMapId: string;
+#### Analyze Topic Configuration Structure
 
-    /** Layer panel display mode */
-    panelMode: 'flat' | 'topics';
+- [x] Review `StreetSmartPHL/src/topics/pave.js` to understand topic structure
+- [x] Document topic configuration:
+  - [x] `key` - Unique identifier for the topic
+  - [x] `icon` - FontAwesome icon name
+  - [x] `label` - User-facing display label
+  - [x] `dataSources` - Array of data source keys this topic depends on
+  - [x] `components` - Array of UI components to render in the topic panel:
+    - [x] `paragraph` - Static or dynamic text (can use function for dynamic content)
+    - [x] `checkbox-set` - Layer toggles with options:
+      - `topicLayers` - Array of layers with title and display options
+      - `defaultTopicLayers` - Layers on by default
+      - `shouldShowSlider` - Opacity slider toggle
+      - `shouldShowLegendBox` - Legend visibility
+    - [x] `division` - Styled container with nested components
+    - [x] `radio-button-set` - Mutually exclusive layer selection (commented out but available)
+    - [x] `popover-link` - Links that open popovers with tables/content
+    - [x] `horizontal-table` - Data tables with field definitions
+- [x] Note: Components can access state via function slots: `function(state) { return state.sources.weekPave.data; }`
 
-    /** Topic definitions for topics mode */
-    topics?: Topic[];
+#### Analyze Data Source Configuration Structure
 
-    /** Initial map view */
-    initialView?: {
-      center: [number, number];
-      zoom: number;
-    };
+- [x] Review `StreetSmartPHL/src/data-sources/week-pave.js` to understand data source structure
+- [x] Document data source configuration:
+  - [x] `id` - Unique identifier matching the key used in topics
+  - [x] `url` - ArcGIS FeatureServer URL
+  - [x] `type` - Data source type ("esri")
+  - [x] `dependent` - Dependency relationship ("none" or another source ID)
+  - [x] `options` - Query options (`relationship: "where"`)
+  - [x] `parameters` - Query parameters (`targetField`, `sourceValue`)
+  - [x] `success(data)` - Success callback
+  - [x] `error(err)` - Error callback
 
-    /** Whether to fetch layers at runtime or use static configs */
-    layerMode: 'static' | 'dynamic';
+#### Architectural Decision: Vue-Idiomatic Approach
 
-    /** Static layer configs (only if layerMode === 'static') */
-    staticLayers?: LayerConfig[];
+- [x] Evaluated old layerboard's config-driven component system
+- [x] Identified problems with old approach:
+  - [x] Configuration as code - mixes data with logic, hard to type-check and debug
+  - [x] Reinvents Vue - custom `components` array with `type: "paragraph"` etc. instead of using Vue components
+  - [x] Function slots everywhere - `text: function(state) {}` loses Vue reactivity benefits
+  - [x] String component references - `type: "horizontal-table"` breaks tree-shaking and type safety
+- [x] **Decision: Do NOT maintain backwards compatibility with old config system**
+- [x] **Decision: Use Vue-idiomatic patterns instead:**
+  - [x] Topics are Vue components (`PaveTopic.vue`, `PlowTopic.vue`) not JS config objects
+  - [x] Framework provides reusable building blocks as proper Vue components with typed props
+  - [x] Data sources use Vue composables with proper reactivity
+  - [x] Topics registered by passing Vue components, not config objects with string type names
+- [x] Tradeoff accepted: StreetSmartPHL will need significant rewriting, but result will be:
+  - Clearer, more maintainable code
+  - Better TypeScript support
+  - Better Vue dev tools integration
+  - Less "framework magic" to understand
 
-    /** Basemap options */
-    basemap?: {
-      defaultImageryUrl: string;
-      defaultLabelsUrl: string;
-      historicOptions?: BasemapOption[];
-    };
+#### Framework Requirements Summary (Revised)
 
-    /** Feature to enable/disable */
-    features?: {
-      search?: boolean;
-      geolocation?: boolean;
-      basemapToggle?: boolean;
-      cyclomedia?: boolean;
-      drawTool?: boolean;
-    };
+Based on our architectural decision to use Vue-idiomatic patterns, the framework needs to provide:
 
-    /** AIS geocoding configuration */
-    geocoding?: {
-      enabled: boolean;
-      apiUrl?: string;
-    };
+**Panel Modes:**
+- Flat layer list mode (OpenMaps style)
+- Topics accordion mode (StreetSmartPHL style) - where topics are Vue components, not config objects
 
-    /** Custom component slots */
-    slots?: {
-      header?: Component;
-      footer?: Component;
-      sidebar?: Component;
-    };
-  }
-  ```
+**Reusable Vue Components for Building Topic Panels:**
+- `<LayerCheckboxSet>` - Toggle multiple layers with legend and opacity options
+- `<TopicAccordion>` - Expandable accordion container for topics
+- `<DataTable>` - Display tabular data from data sources
+- `<InfoBox>` - Styled information/alert container
+- `<PopoverLink>` - Links that open popovers with additional content
 
-- [ ] Create `Topic` interface for topics mode:
-  ```typescript
-  interface Topic {
-    id: string;
-    title: string;
-    /** Controls whether entire topic's layers are visible */
-    visible: boolean;
-    /** List of layer IDs belonging to this topic */
-    layerIds: string[];
-  }
-  ```
+**Vue Composables:**
+- `useDataSource(config)` - Fetch from ArcGIS FeatureServer with Vue reactivity
+- `useLayerboard(config)` - Main framework composable for initialization
 
-- [ ] Design initialization API:
-  ```typescript
-  // Option 1: Composable pattern
-  const layerboard = useLayerboard(config);
+**Key Principle:** Topics are Vue components (e.g., `PaveTopic.vue`) that compose framework building blocks, NOT JavaScript config objects with string type references.
 
-  // Option 2: Plugin pattern
-  app.use(Vue3LayerboardPlugin, config);
+**Features to Support:**
+- Map configuration (center, zoom, basemaps, historic imagery)
+- Cyclomedia integration
+- Pictometry integration
+- Geolocation
+- Address search
+- Layer visibility, opacity, legends
+- Feature popups and highlighting
 
-  // Option 3: Component pattern
-  <Layerboard :config="config" />
-  ```
+---
 
-### Repository Rename and Package Setup
+### 8.1 Architecture Analysis
+
+Categorize the current vue3-openmaps codebase to understand what becomes framework vs application code.
+
+#### Current File Structure (as of January 2025)
+
+```
+vue3-openmaps/src/
+├── App.vue                      # Main app component
+├── main.ts                      # Vue app initialization
+├── assets/                      # CSS and images
+│   ├── base.css
+│   ├── main.css
+│   └── logo.svg
+├── components/
+│   ├── LayerPanel.vue           # Layer list sidebar
+│   └── MapPanel.vue             # Map container
+├── layers/                      # 130+ static layer config files
+│   ├── index.ts                 # Exports all layers
+│   ├── types.ts                 # LayerConfig type definitions
+│   └── [130+ layer files]       # Philadelphia-specific layer configs
+├── services/
+│   └── layerConfigService.ts    # Loads layers (static or dynamic)
+├── stores/
+│   └── counter.ts               # Placeholder Pinia store
+└── utils/
+    └── webmap-transformer.ts    # Converts Esri WebMap JSON to LayerConfig
+```
+
+#### Categorize Files
+
+- [x] Review and categorize each file/folder:
+
+**Framework Code** (will be in `@phila/vue3-layerboard` package):
+- [x] `components/LayerPanel.vue` - Generic layer panel (needs refactoring for flexibility)
+- [x] `components/MapPanel.vue` - Generic map container
+- [x] `services/layerConfigService.ts` - Layer loading service (needs WebMap ID as param)
+- [x] `utils/webmap-transformer.ts` - Already generic
+- [x] `layers/types.ts` - LayerConfig interface and related types
+- [x] New composables to be created
+
+**Application-Specific Code** (stays in example apps / consumer repos):
+- [x] `App.vue` - App-specific layout and configuration
+- [x] `main.ts` - App initialization with specific config
+- [x] `assets/` - App-specific styles and branding
+- [x] ~~`layers/*.ts` (130+ files)~~ - **TO BE DELETED** - Using dynamic mode (layers fetched from ArcGIS Online at runtime)
+- [x] `stores/counter.ts` - Placeholder, can be removed
+- [x] Environment files - Only `.env` needed (dynamic mode is the default)
+- [x] GitHub workflows and deployment scripts
+
+**Dependencies** (peer dependencies of the framework):
+- [x] `@phila/phila-ui-map-core` - Map components (MapLibreMap, etc.) - v0.0.2-beta.3
+- [x] `@phila/phila-ui-core` - UI components and utilities - v2.2.1-beta.0
+- [x] `@phila/phila-ui-search` - Search component (transitive dependency via phila-ui-core, v1.0.6-beta.2)
+- [x] `maplibre-gl` - Map library - v5.14.0
+- [x] `vue` - Framework - v3.5.26
+
+---
+
+### 8.2 Repository Restructure
+
+Transform vue3-openmaps into vue3-layerboard with framework code and example apps.
 
 #### Rename Repository
 
-- [ ] Rename GitHub repository from `vue3-openmaps` to `vue3-layerboard`
-  - [ ] Update repository name in GitHub settings
-  - [ ] Update local git remotes: `git remote set-url origin <new-url>`
-  - [ ] Update README.md with new repo name and purpose
+- [x] Rename GitHub repository from `vue3-openmaps` to `vue3-layerboard` (done on GitHub.com)
+- [x] Update local git remote: `git remote set-url origin git@github.com:CityOfPhiladelphia/vue3-layerboard.git`
+- [x] Update README.md title and description to reflect new framework purpose
 
-#### Package Structure
+#### Create New Directory Structure
 
-- [ ] Create package directory structure:
+- [x] Create the following structure:
   ```
   vue3-layerboard/
-  ├── src/
-  │   ├── components/          # Framework components
+  ├── src/                        # Framework source code
+  │   ├── components/
   │   │   ├── LayerPanel.vue
   │   │   ├── MapPanel.vue
+  │   │   ├── TopicAccordion.vue  # NEW - for topics mode
+  │   │   ├── LayerCheckboxSet.vue # NEW - reusable layer toggles
   │   │   └── index.ts
-  │   ├── composables/         # Reusable composition functions
-  │   │   ├── useLayerboard.ts
-  │   │   ├── useLayerConfig.ts
+  │   ├── composables/
+  │   │   ├── useLayerboard.ts    # NEW - main framework composable
+  │   │   ├── useLayerConfig.ts   # NEW - layer state management
+  │   │   ├── useDataSource.ts    # NEW - data fetching composable
   │   │   └── index.ts
-  │   ├── services/            # Core services
+  │   ├── services/
   │   │   ├── layerConfigService.ts
   │   │   └── index.ts
-  │   ├── utils/               # Utility functions
+  │   ├── utils/
   │   │   ├── webmap-transformer.ts
-  │   │   ├── highlightHelpers.ts
-  │   │   ├── featureHelpers.ts
   │   │   └── index.ts
-  │   ├── types/               # TypeScript definitions
-  │   │   ├── config.ts
-  │   │   ├── layer.ts
-  │   │   ├── webmap.ts
+  │   ├── types/
+  │   │   ├── config.ts           # LayerboardConfig interface
+  │   │   ├── layer.ts            # LayerConfig and related
   │   │   └── index.ts
-  │   └── index.ts             # Main package entry point
-  ├── examples/                # Demo apps
-  │   ├── openmaps-demo/       # OpenMaps-style flat list demo
-  │   └── topics-demo/         # Topics/accordion demo
-  ├── package.json
-  ├── vite.config.ts           # Build config for library mode
+  │   └── index.ts                # Main package exports
+  ├── examples/
+  │   ├── openmaps/               # OpenMaps example app
+  │   │   ├── src/
+  │   │   │   ├── App.vue
+  │   │   │   ├── main.ts
+  │   │   │   └── config.ts       # OpenMaps-specific config (WebMap ID, etc.)
+  │   │   ├── index.html
+  │   │   ├── package.json
+  │   │   └── vite.config.ts
+  │   └── streetsmartphl/         # StreetSmartPHL example app
+  │       ├── src/
+  │       │   ├── App.vue
+  │       │   ├── main.ts
+  │       │   ├── config.ts
+  │       │   └── topics/         # Topic Vue components
+  │       │       ├── PaveTopic.vue
+  │       │       ├── PlowTopic.vue
+  │       │       └── index.ts
+  │       ├── index.html
+  │       ├── package.json
+  │       └── vite.config.ts
+  ├── package.json                # Framework package
+  ├── vite.config.ts              # Library build config
   ├── tsconfig.json
   └── README.md
   ```
 
-#### Package Configuration
+#### Move Existing Files
 
-- [ ] Update `package.json`:
+- [x] Move `src/components/LayerPanel.vue` → `src/components/LayerPanel.vue` (already in place)
+- [x] Move `src/components/MapPanel.vue` → `src/components/MapPanel.vue` (already in place)
+- [x] Move `src/services/layerConfigService.ts` → `src/services/layerConfigService.ts` (already in place)
+- [x] Move `src/utils/webmap-transformer.ts` → `src/utils/webmap-transformer.ts` (already in place)
+- [x] Move `src/layers/types.ts` → `src/types/layer.ts` (merged into new types file)
+- [x] Move `src/App.vue` → `examples/openmaps/src/App.vue`
+- [x] Move `src/main.ts` → `examples/openmaps/src/main.ts`
+- [x] Delete `src/layers/*.ts` (all 117 static layer files) - Using dynamic mode instead
+- [x] Move `src/assets/` → `examples/openmaps/src/assets/`
+- [x] Delete `src/stores/counter.ts` (unused placeholder)
+
+---
+
+### 8.3 Package Configuration
+
+Set up the framework as a publishable npm package.
+
+#### Update Root package.json
+
+- [x] Update `package.json` for library publishing:
   ```json
   {
-    "name": "@phila/vue3-layerboard",
-    "version": "0.1.0",
-    "description": "Vue 3 + MapLibre mapping framework for City of Philadelphia",
-    "main": "./dist/vue3-layerboard.umd.js",
-    "module": "./dist/vue3-layerboard.es.js",
+    "name": "@phila/layerboard",
+    "version": "3.0.0-beta.0",
+    "type": "module",
+    "description": "Vue 3 + MapLibre mapping framework for City of Philadelphia applications",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "exports": {
       ".": {
-        "import": "./dist/vue3-layerboard.es.js",
-        "require": "./dist/vue3-layerboard.umd.js",
-        "types": "./dist/index.d.ts"
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
       },
-      "./styles": "./dist/style.css"
+      "./components": {
+        "types": "./dist/components/index.d.ts",
+        "import": "./dist/components/index.mjs"
+      },
+      "./composables": {
+        "types": "./dist/composables/index.d.ts",
+        "import": "./dist/composables/index.mjs"
+      }
     },
-    "files": [
-      "dist"
-    ],
+    "files": ["dist"],
     "scripts": {
+      "build": "vite build",
       "dev": "vite",
-      "build": "vite build && vue-tsc --declaration --emitDeclarationOnly",
-      "preview": "vite preview"
+      "dev:openmaps": "cd examples/openmaps && vite",
+      "dev:streetsmartphl": "cd examples/streetsmartphl && vite"
     },
     "peerDependencies": {
       "vue": "^3.4.0",
-      "@phila/phila-ui-map-core": "^0.1.0",
-      "@phila/phila-ui-core": "^0.1.0",
-      "maplibre-gl": "^4.0.0"
-    },
-    "devDependencies": {
-      "@vitejs/plugin-vue": "^5.0.0",
-      "typescript": "^5.3.0",
-      "vite": "^5.0.0",
-      "vue-tsc": "^1.8.0"
-    },
-    "repository": {
-      "type": "git",
-      "url": "https://github.com/CityOfPhiladelphia/vue3-layerboard.git"
-    },
-    "keywords": ["vue3", "maplibre", "gis", "philadelphia", "mapping"],
-    "author": "City of Philadelphia",
-    "license": "MIT"
+      "@phila/phila-ui-map-core": ">=0.1.0",
+      "@phila/phila-ui-core": ">=2.0.0",
+      "maplibre-gl": "^5.0.0"
+    }
   }
   ```
 
-- [ ] Configure Vite for library mode in `vite.config.ts`:
+#### Configure Vite for Library Mode
+
+- [x] Update `vite.config.ts` for library build:
   ```typescript
   import { defineConfig } from 'vite'
   import vue from '@vitejs/plugin-vue'
+  import dts from 'vite-plugin-dts'
   import { resolve } from 'path'
 
   export default defineConfig({
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      dts({ include: ['src'] })
+    ],
     build: {
       lib: {
         entry: resolve(__dirname, 'src/index.ts'),
-        name: 'Vue3Layerboard',
-        formats: ['es', 'umd'],
-        fileName: (format) => `vue3-layerboard.${format}.js`
+        formats: ['es', 'cjs'],
+        fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`
       },
       rollupOptions: {
-        external: ['vue', '@phila/phila-ui-map-core', '@phila/phila-ui-core', 'maplibre-gl'],
-        output: {
-          globals: {
-            vue: 'Vue',
-            'maplibre-gl': 'maplibregl'
-          }
-        }
+        external: [
+          'vue',
+          '@phila/phila-ui-map-core',
+          '@phila/phila-ui-core',
+          '@phila/phila-ui-search',
+          'maplibre-gl'
+        ]
       }
     }
   })
   ```
 
-### Code Extraction
+---
 
-#### Extract Core Components
+### 8.4 Create Framework Components
 
-- [ ] Move LayerPanel.vue to `src/components/LayerPanel.vue`
-  - [ ] Make panel mode configurable via props
-  - [ ] Support both flat list and topics mode
-  - [ ] Remove OpenMaps-specific hardcoded elements
+Build the reusable components that consuming apps will use.
 
-- [ ] Move MapPanel.vue to `src/components/MapPanel.vue`
-  - [ ] Accept configuration via props
-  - [ ] Emit events for app-level handling
-  - [ ] Keep generic, no app-specific logic
+#### Refactor LayerPanel.vue
 
-- [ ] Create `src/components/TopicsPanel.vue` for topic-based layer organization:
-  - [ ] Accordion UI with expandable topics
-  - [ ] Each topic controls visibility of its layers
-  - [ ] Layer checkboxes nested under topics
-  - [ ] Based on analysis of old Vue 2 layerboard streetsmartphl implementation
+- [x] Make LayerPanel accept props for configuration instead of hardcoding
+- [x] Add `mode` prop: `'flat' | 'topics'`
+- [x] Add slot for custom topic components in topics mode
+- [x] Emit events for layer changes instead of directly mutating state
 
-#### Extract Utilities
+#### Create TopicAccordion.vue
 
-- [ ] Move `src/utils/webmap-transformer.ts` to package
-  - [ ] Already generic, no changes needed
-  - [ ] Ensure all imports are relative or from dependencies
+- [x] Create expandable accordion component for topics mode
+- [x] Props: `title`, `icon`, `expanded`, `layerIds`, `headerClass`
+- [x] Slots: default slot for custom topic content, icon slot
+- [x] Emits: `toggle`, `layerChange`
 
-- [ ] Move `src/services/layerConfigService.ts` to package
-  - [ ] Make WebMap ID configurable (passed via config, not hardcoded)
-  - [ ] Support both static and dynamic modes via config
+#### Create LayerCheckboxSet.vue
 
-- [ ] Create `src/utils/highlightHelpers.ts` (Phase 6.4 code)
-  - [ ] Generic feature highlighting utilities
-  - [ ] No app-specific logic
+- [x] Reusable component for toggling multiple layers
+- [x] Props: `layers`, `visibleLayerIds`, `layerOpacities`, `loadingLayerIds`, `layerErrors`, `currentZoom`, `showLegend`, `showOpacity`
+- [x] Integrates with LayerPanel state via emits: `toggleLayer`, `setOpacity`
 
-- [ ] Create `src/utils/featureHelpers.ts` (Phase 6.5 code)
-  - [ ] Feature deduplication and sorting
-  - [ ] Geometry type detection
-  - [ ] Feature metadata enrichment
+---
 
-#### Extract Types
+### 8.5 Create Framework Composables
 
-- [ ] Create `src/types/config.ts` with all configuration interfaces
-- [ ] Create `src/types/layer.ts` with LayerConfig and related types
-- [ ] Create `src/types/webmap.ts` with Esri WebMap JSON types
-- [ ] Export all types from `src/types/index.ts`
+Build Vue composables for state management and data fetching.
 
-#### Create Composables
+#### Create useLayerboard.ts
 
-- [ ] Create `src/composables/useLayerboard.ts`:
+- [x] Main initialization composable
+- [x] Accepts `LayerboardConfig` object
+- [x] Returns reactive state and methods:
   ```typescript
   export function useLayerboard(config: LayerboardConfig) {
-    // Initialize layer config service
-    // Set up state management
-    // Provide map and layer refs
-    // Return public API
+    const layerConfigs = ref<LayerConfig[]>([])
+    const visibleLayers = ref<Set<string>>(new Set())
+    const isLoading = ref(true)
+
+    // Load layers based on config.layerMode
+    // ...
+
     return {
       layerConfigs: readonly(layerConfigs),
-      map: readonly(map),
-      toggleLayer: (layerId: string) => { ... },
-      setLayerOpacity: (layerId: string, opacity: number) => { ... },
-      // ... other public methods
+      visibleLayers: readonly(visibleLayers),
+      isLoading: readonly(isLoading),
+      toggleLayer,
+      setLayerOpacity,
+      filterLayers
     }
   }
   ```
 
-- [ ] Create `src/composables/useLayerConfig.ts`:
-  - [ ] Handles loading static vs dynamic configs
-  - [ ] Manages layer visibility state
-  - [ ] Provides layer filtering/search
+#### Create useDataSource.ts
 
-- [ ] Create `src/composables/useMapInteraction.ts`:
-  - [ ] Handles feature clicks
-  - [ ] Manages popup state
-  - [ ] Manages feature highlighting
-  - [ ] Multi-feature navigation
-
-#### Create Main Entry Point
-
-- [ ] Create `src/index.ts`:
+- [x] Composable for fetching data from ArcGIS FeatureServers
+- [x] Supports reactive refetching when address changes
+- [x] Returns loading state, data, and error
   ```typescript
-  // Export main composable
-  export { useLayerboard } from './composables/useLayerboard'
+  export function useDataSource(config: DataSourceConfig) {
+    const data = ref(null)
+    const isLoading = ref(false)
+    const error = ref(null)
 
-  // Export components
-  export { default as LayerPanel } from './components/LayerPanel.vue'
-  export { default as MapPanel } from './components/MapPanel.vue'
-  export { default as TopicsPanel } from './components/TopicsPanel.vue'
+    async function fetch(params?: Record<string, any>) { ... }
 
-  // Export utilities (for advanced usage)
-  export * from './utils'
-
-  // Export types
-  export * from './types'
-
-  // Export services (for custom integrations)
-  export * from './services'
+    return { data, isLoading, error, fetch }
+  }
   ```
 
-### Example Applications
+---
 
-#### Create OpenMaps Demo
+### 8.6 Create Type Definitions
 
-- [ ] Create `examples/openmaps-demo/` directory
-- [ ] Copy current App.vue structure
-- [ ] Configure with OpenMaps WebMap ID
-- [ ] Use flat list panel mode
-- [ ] Demonstrate all features (search, geolocation, basemap, etc.)
-- [ ] Include README with setup instructions
+Define TypeScript interfaces for the framework API.
 
-#### Create Topics Demo
+#### Create src/types/config.ts
 
-- [ ] Create `examples/topics-demo/` directory
-- [ ] Model after old Vue 2 layerboard streetsmartphl structure
-- [ ] Configure with topics-based WebMap
-- [ ] Use topics panel mode
-- [ ] Define topic structure:
+- [x] Define `LayerboardConfig` interface:
   ```typescript
-  const topics: Topic[] = [
-    {
-      id: 'streets',
-      title: 'Streets',
-      visible: true,
-      layerIds: ['bike-network', 'paving-status']
-    },
-    {
-      id: 'permits',
-      title: 'Permits',
-      visible: false,
-      layerIds: ['construction-permits', 'street-closures']
-    }
-  ]
-  ```
-- [ ] Include README explaining topic configuration
-
-### Documentation
-
-#### README.md
-
-- [ ] Write comprehensive README with:
-  - [ ] Introduction to vue3-layerboard
-  - [ ] Installation instructions
-  - [ ] Basic usage example
-  - [ ] Configuration API documentation
-  - [ ] Links to example apps
-  - [ ] Contributing guidelines
-  - [ ] Migration guide from Vue 2 layerboard
-
-#### API Documentation
-
-- [ ] Document `LayerboardConfig` interface with all options
-- [ ] Document `useLayerboard` composable API
-- [ ] Document exported components and their props
-- [ ] Document utility functions for advanced usage
-- [ ] Create JSDoc comments for all public APIs
-
-#### Migration Guide
-
-- [ ] Write guide comparing Vue 2 `@phila/layerboard` to vue3-layerboard
-- [ ] Map old configuration patterns to new ones
-- [ ] Explain breaking changes
-- [ ] Provide code examples for common migration scenarios
-
-### Testing
-
-#### Unit Tests
-
-- [ ] Set up Vitest for unit testing
-- [ ] Test webmap-transformer functions
-- [ ] Test highlightHelpers utilities
-- [ ] Test featureHelpers utilities
-- [ ] Test layerConfigService logic
-- [ ] Test composables in isolation
-
-#### Integration Tests
-
-- [ ] Test full layerboard initialization with different configs
-- [ ] Test flat list mode
-- [ ] Test topics mode
-- [ ] Test feature highlighting
-- [ ] Test multi-feature popups
-- [ ] Test layer toggling and opacity
-
-#### Example App Testing
-
-- [ ] Manually test OpenMaps demo
-- [ ] Manually test Topics demo
-- [ ] Verify both demos work identically to current implementations
-
-### Publishing
-
-#### NPM Setup
-
-- [ ] Set up npm organization scope: `@phila`
-- [ ] Ensure team members have publish access
-- [ ] Configure `.npmrc` if needed for private registry
-
-#### Pre-publish Checklist
-
-- [ ] Build the package: `npm run build`
-- [ ] Verify `dist/` contents include all necessary files
-- [ ] Test package locally with `npm link` in example apps
-- [ ] Verify types are exported correctly (`.d.ts` files present)
-- [ ] Run linter: `npm run lint`
-- [ ] Run tests: `npm run test`
-- [ ] Update version in `package.json`
-
-#### Publish to NPM
-
-- [ ] Dry run: `npm publish --dry-run`
-- [ ] Publish beta: `npm publish --tag beta` (for initial testing)
-- [ ] Test beta installation in separate project
-- [ ] Publish stable: `npm publish` (when ready for production)
-
-#### GitHub Release
-
-- [ ] Create Git tag: `git tag v0.1.0`
-- [ ] Push tag: `git push origin v0.1.0`
-- [ ] Create GitHub release with changelog
-- [ ] Attach build artifacts if needed
-
-### Application Migration
-
-#### OpenMaps Migration
-
-- [ ] Create `vue3-migration` branch in original `openmaps` repo
-- [ ] Install vue3-layerboard: `npm install @phila/vue3-layerboard`
-- [ ] Remove old framework code (keep only app-specific files)
-- [ ] Create `src/config/layerboard.config.ts`:
-  ```typescript
-  import type { LayerboardConfig } from '@phila/vue3-layerboard'
-
-  export const layerboardConfig: LayerboardConfig = {
-    webMapId: '1596df70df0349e293ceec46a06ccc50',
-    panelMode: 'flat',
-    layerMode: 'dynamic',
-    basemap: {
-      defaultImageryUrl: '...',
-      defaultLabelsUrl: '...',
-      historicOptions: [...]
-    },
-    features: {
-      search: true,
-      geolocation: true,
-      basemapToggle: true,
-      cyclomedia: true,
-      drawTool: true
+  export interface LayerboardConfig {
+    webMapId: string
+    layerMode: 'static' | 'dynamic'
+    panelMode: 'flat' | 'topics'
+    staticLayers?: LayerConfig[]
+    initialView?: { center: [number, number]; zoom: number }
+    features?: {
+      search?: boolean
+      geolocation?: boolean
+      cyclomedia?: boolean
+      pictometry?: boolean
     }
   }
   ```
-- [ ] Update App.vue to use `useLayerboard(layerboardConfig)`
-- [ ] Remove duplicate component definitions (use framework exports)
-- [ ] Update imports to reference `@phila/vue3-layerboard`
-- [ ] Test all functionality still works
-- [ ] Update deployment pipeline if needed
 
-#### StreetsSmartPHL Migration
+#### Create src/types/layer.ts
 
-- [ ] Create `vue3-migration` branch in `streetsmartphl` repo
-- [ ] Install vue3-layerboard
-- [ ] Create topics-based configuration:
-  ```typescript
-  export const layerboardConfig: LayerboardConfig = {
-    webMapId: '<streetsmartphl-webmap-id>',
-    panelMode: 'topics',
-    topics: [
-      { id: 'streets', title: 'Streets', visible: true, layerIds: [...] },
-      { id: 'permits', title: 'Permits', visible: false, layerIds: [...] }
-    ],
-    // ... other config
-  }
-  ```
-- [ ] Migrate custom Streets Department branding/header
-- [ ] Test topic accordion functionality
-- [ ] Ensure all existing features work
+- [x] Move and expand `LayerConfig` interface from current `layers/types.ts`
+- [x] Add supporting types: `LegendItem`, `PopupConfig`, etc.
 
-#### CSOcast Migration
+---
 
-- [ ] Follow similar pattern as StreetsSmartPHL
-- [ ] Determine if using flat list or topics mode
-- [ ] Configure with CSOcast WebMap ID
-- [ ] Migrate Water Department branding
-- [ ] Test CSO-specific functionality
+### 8.7 Set Up Example Apps
 
-### Maintenance and Versioning
+Create working example applications that demonstrate framework usage.
 
-#### Semantic Versioning
+#### Set Up OpenMaps Example
 
-- [ ] Follow semver: `MAJOR.MINOR.PATCH`
-- [ ] MAJOR: Breaking changes to public API
-- [ ] MINOR: New features, backward compatible
-- [ ] PATCH: Bug fixes, backward compatible
+- [x] Create `examples/openmaps/package.json` with workspace reference to framework
+- [x] Create `examples/openmaps/vite.config.ts`
+- [x] Update `examples/openmaps/src/main.ts` to use `useLayerboard`
+- [x] Update `examples/openmaps/src/App.vue` to use framework components
+- [ ] Verify all 130+ layers still work
+- [ ] Test search, geolocation, basemaps, cyclomedia, pictometry
 
-#### Changelog
+#### Set Up StreetSmartPHL Example
 
-- [ ] Maintain `CHANGELOG.md` with all version changes
-- [ ] Document breaking changes prominently
-- [ ] List new features and bug fixes
+- [x] Create `examples/streetsmartphl/` directory structure
+- [x] Create topic Vue components (PaveTopic.vue, PlowTopic.vue, etc.)
+- [x] Each topic uses framework building blocks (`LayerCheckboxSet`, `DataTable`, etc.)
+- [x] Configure with StreetSmartPHL WebMap ID
+- [ ] Test topics accordion functionality
 
-#### Dependency Updates
+#### 8.7.5 Create Main Layerboard Component
 
-- [ ] Keep `@phila/phila-ui-map-core` up to date
-- [ ] Keep Vue, MapLibre, and other dependencies current
-- [ ] Test thoroughly after dependency updates
+Extract the common app layout structure into a reusable `Layerboard.vue` component so example apps don't duplicate the panel/map/header/footer structure.
 
-#### Consumer Support
+- [x] Create `src/components/Layerboard.vue` with:
+  - [x] Standard layout structure (header, sidebar, map panel, footer, mobile toggle)
+  - [x] All layer state management handled internally (visibleLayers, layerOpacities, loadingLayers, layerErrors)
+  - [x] Configurable via props: `title`, `subtitle`, `webMapId`, `themeColor`, `sidebarWidth`, `sidebarLabel`, `mapLabel`
+  - [x] `cyclomediaConfig` and `pictometryCredentials` props for imagery
+  - [x] `showDefaultSidebar` prop to use LayerPanel or custom sidebar
+  - [x] `fetchMetadata` prop for OpenMaps-style metadata links
+  - [x] Slots for customization: `#header`, `#sidebar`, `#footer`
+  - [x] Sidebar slot receives layer state as slot props (`layers`, `visibleLayers`, `toggleLayer`, etc.)
+  - [x] Loading and error states with retry button
+  - [x] Mobile responsive toggle between sidebar and map
+  - [x] Exposes API via `defineExpose` for parent component access
+- [x] Export `Layerboard` from `src/components/index.ts`
+- [x] Update `layerConfigService.ts` to accept `webMapId` parameter (with caching per WebMap)
+- [x] Update OpenMaps example to use `<Layerboard>` component (simplified from ~500 lines to ~40 lines)
+- [x] Update StreetSmartPHL example to use `<Layerboard>` with custom `#sidebar` slot for topic accordions (simplified from ~670 lines to ~280 lines)
+- [x] Create `pnpm-workspace.yaml` to enable workspace dependency resolution
 
-- [ ] Provide migration support to app teams
-- [ ] Create GitHub issues for bug reports
-- [ ] Review and merge pull requests from consumers
-- [ ] Maintain example apps as reference implementations
+#### 8.7.6 Debug Layerboard.vue CSS Issues
 
-### Success Criteria
+Fix CSS layout issues causing scrollbars and content being cut off in example apps.
 
-- [ ] vue3-layerboard package is published to npm
-- [ ] Package can be installed and used in new projects
-- [ ] OpenMaps demo app runs with framework package
-- [ ] Topics demo app demonstrates accordion mode
-- [ ] At least one production app (OpenMaps) successfully migrated to use the package
-- [ ] Documentation is complete and clear
-- [ ] Tests pass and provide good coverage
-- [ ] Package follows npm best practices (proper exports, types, tree-shaking support)
+- [x] Investigate CSS causing horizontal and vertical scrollbars around the entire app
+- [x] Identify the CSS rules causing content to be offscreen on the right and bottom edges
+- [x] Move necessary global CSS from example App.vue files to Layerboard.vue component
+- [x] Ensure `html`, `body`, and root element have proper sizing (100vh, 100vw, no overflow)
+- [x] Verify flex layout fills available space without causing overflow
+- [x] Make sidebar width consistent across both example apps (use OpenMaps width as default)
+- [x] Test both OpenMaps and StreetSmartPHL examples to confirm scrollbars are removed
+- [x] Ensure mobile responsive behavior still works correctly
 
-### Rollback Plan
+#### 8.7.7 StreetSmartPHL Full Topic Implementation
 
-If framework extraction encounters major issues:
+Make the StreetSmartPHL example app fully functional with all 5 topics matching the production app at streetsmartphl.phila.gov. Reference the existing `streetsmartphl` project on the local machine for component configurations.
 
-- [ ] Keep original vue3-openmaps repo intact (don't delete)
-- [ ] Consumers can fall back to vendoring/copying code if package doesn't work
-- [ ] Beta tag allows testing without committing production apps
-- [ ] Vue3-migration branches can be abandoned if migration fails
+##### 8.7.7.1 Generic Topic Functionality
 
-### Technical Considerations
+Before implementing individual topics, ensure the generic topic infrastructure works correctly.
 
-#### Shared State Management
+**NOTE**: The original Layerboard topic system is more complex than simple checkboxes. Key concepts from the original:
+- `topicLayers` array with per-layer options: `shouldShowCheckbox`, `shouldShowSlider`, `shouldShowLegendBox`, `layerNameChange`
+- `defaultTopicLayers` - layers that auto-activate when the app loads (not just when topic opens)
+- `tiledLayers` - separate ESRI tile map layers (different from WebMap feature layers)
+- `dataSources` - external data fetching for dynamic components like "trash-status"
+- Layer visibility requires BOTH being in `webMapActiveLayers` (toggled on) AND `activeTopicLayers` (topic has it defined)
 
-- **Challenge**: Different apps may want different state management solutions (Pinia, Vuex, plain refs)
-- **Solution**: Use Vue's provide/inject pattern for internal state, keep composables framework-agnostic
+**Basic Topic Infrastructure:**
+- [x] Ensure only one topic can be open at a time (expanding one closes the other)
+- [x] Update App.vue layer IDs to match WebMap transformer output (slugified IDs)
+- [x] No topic should be open when the app loads (expandedTopic starts as null)
+- [x] When a topic opens, auto-activate its default tiled layers (e.g., collectionDay for PickupPHL)
+- [x] Add spacing around topic accordions (border, border-radius, margin-bottom)
+- [x] Add intro paragraph above topics explaining how to use StreetSmartPHL
+- [ ] Ensure layer visibility toggles work within topics (checkboxes control map layers)
+- [ ] Verify layer legends display correctly within topics
+- [ ] Test layer opacity controls work within topics
+- [ ] Ensure zoom-dependent layer visibility warnings appear
+- [ ] Verify loading states show for layers within topics
+- [ ] Test error handling for failed layer loads within topics
+- [ ] Ensure closing a topic doesn't remove layers from the map (persistence)
 
-#### CSS and Styling
+**Advanced Topic Features (matching original Layerboard):**
+- [x] Support per-layer display options (`shouldShowCheckbox: false` hides checkbox, layer is auto-controlled)
+- [x] Support `layerNameChange` to display different label than layer title
+- [x] Support `shouldShowSlider: false` to hide opacity slider per layer
+- [x] Support `shouldShowLegendBox: false` to hide legend per layer
+- [x] Support `defaultTopicLayers` for auto-activating feature layers when topic opens (implemented via `setLayersVisible` slot prop)
+- [x] Support `defaultTiledLayersMap` for auto-activating tiled layers when topic opens (implemented via `setTiledLayerVisible` slot prop)
 
-- **Challenge**: Apps have different design systems and branding
-- **Solution**:
-  - Export minimal base styles
-  - Use CSS custom properties for theming
-  - Allow consumers to override styles
-  - Don't bundle framework CSS by default (opt-in via import)
+**Known Issues / Future Work:**
+- [ ] CORS errors for `plowphl-services.phila.gov` - server needs CORS headers enabled, or add proxy support
+- [ ] Some layers show "Error" when toggled on (CORS/server unavailable) - consider adding proxy for CORS-blocked services
+- [x] Implement `shouldShowCheckbox: false` behavior in LayerCheckboxSet component
 
-#### TypeScript Support
+##### 8.7.7.2 TiledLayers Support (Framework Feature)
 
-- **Challenge**: Consumers may use JavaScript or TypeScript
-- **Solution**:
-  - Write package in TypeScript
-  - Export `.d.ts` files for type safety
-  - Ensure package works in both JS and TS projects
+Implement support for ESRI tiled map layers (MapServer tiles) that are separate from WebMap feature layers. These are used by PickupPHL and PlowPHL topics in the original StreetSmartPHL.
 
-#### Bundle Size
+**TiledLayers Configuration (in Layerboard.vue or tiledLayerService.ts):**
+- [x] Create `TiledLayerConfig` interface with `id`, `url`, `zIndex`, `attribution` properties
+- [x] Add `tiledLayers` prop to Layerboard component for registering available tiled layers
+- [x] Create `activeTiledLayers` state (Set or array) to track which tiled layers are visible
+- [x] Add `toggleTiledLayer(id)` and `setTiledLayerVisible(id, visible)` methods
+- [x] Expose tiled layer state/methods via slot props for custom sidebars
 
-- **Challenge**: Framework shouldn't add excessive weight to apps
-- **Solution**:
-  - Use tree-shaking friendly exports
-  - Mark dependencies as external (peer dependencies)
-  - Don't bundle Vue, MapLibre, or phila-ui packages
-  - Lazy load optional features
+**TiledLayers Rendering (in MapPanel.vue or MapView):**
+- [x] Add MapLibre raster source for each configured tiled layer
+- [x] Add MapLibre raster layer that renders when tiled layer is active
+- [ ] Handle tiled layer z-index ordering
+- [x] Support show/hide based on `activeTiledLayers` state
 
-#### Breaking Changes
+**Original StreetSmartPHL TiledLayers to Support:**
+| ID | URL | Used By |
+|----|-----|---------|
+| collectionDay | `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqeF9q/arcgis/rest/services/PickupPHL_CollectionBands/MapServer` | PickupPHL |
+| plowTreatedStreetsStatus | `https://plowphl-services.phila.gov/arcweb/rest/services/Projects/TreatedStatus/MapServer` | PlowPHL |
+| plowNotTreatedStreets | `https://plowphl-services.phila.gov/arcweb/rest/services/Projects/NotTreatedCity/MapServer` | PlowPHL |
+| plowConditional | `https://plowphl-services.phila.gov/arcweb/rest/services/Projects/NotTreatedCond/MapServer` | PlowPHL |
+| plowHighways | `https://plowphl-services.phila.gov/arcweb/rest/services/Projects/NotTreatedHigh/MapServer` | PlowPHL |
 
-- **Challenge**: Changes to framework may break consumer apps
-- **Solution**:
-  - Use semantic versioning strictly
-  - Deprecate features before removing them
-  - Provide migration guides for breaking changes
-  - Consider LTS versions for stability
+##### 8.7.7.3 DataSources Support (Framework Feature)
 
-#### Monorepo Alternative
+Implement support for fetching external data from APIs. This data is used by custom topic components to display status, notices, and conditionally show/hide layers.
 
-If separate package approach becomes too complex:
+**DataSources Service (src/composables/useApiDataSources.ts):**
+- [x] Create `DataSourceConfig` interface with `id`, `url`, `type` ('http-get' | 'http-post' | 'esri'), `options`
+- [x] Create `useApiDataSources()` composable for fetching and caching data
+- [x] Implement HTTP GET fetcher for REST APIs
+- [x] Implement ESRI FeatureServer fetcher for ArcGIS services
+- [x] Add loading/error state tracking per data source
+- [x] Add auto-refresh/polling capability for real-time data
 
-- **Alternative**: Create monorepo with framework + apps in one repository
-- **Structure**:
-  ```
-  packages/
-    ├── vue3-layerboard/     # Framework package
-    ├── openmaps/            # OpenMaps app
-    ├── streetsmartphl/      # StreetsSmartPHL app
-    └── csocast/             # CSOcast app
-  ```
-- **Pros**: Easier coordination, shared tooling
-- **Cons**: Teams must coordinate commits, shared CI/CD
-- **Decision**: Only consider if separate package approach fails
+**DataSources Integration with Layerboard:**
+- [x] Add `dataSources` prop to Layerboard component for registering data sources
+- [x] Fetch data sources on mount (automatic via composable)
+- [x] Expose data source state via slot props for custom topic components
+- [x] Provide `refetchDataSource(id)` method for manual refresh
+
+**Original StreetSmartPHL DataSources to Support:**
+| ID | URL | Type | Used By |
+|----|-----|------|---------|
+| notices | `https://stsweb.phila.gov/StreetsCityWorks/api/Notice/getNotices` | HTTP | All topics |
+| storms | `https://stsweb.phila.gov/StreetsCityWorks/api/Storm/getStorm` | HTTP | PlowPHL |
+| trashDay | `https://admin.phila.gov/wp-json/closures/v1/closure/` | HTTP | PickupPHL |
+| weekPave | `https://services.arcgis.com/.../StreetSmartPHL/FeatureServer/4` | ESRI | PavePHL |
+| weekMill | `https://services.arcgis.com/.../StreetSmartPHL/FeatureServer/3` | ESRI | PavePHL |
+
+##### 8.7.7.4 PickupPHL Topic
+
+Implement the PickupPHL (sanitation collection) topic to match production functionality.
+
+**WebMap Feature Layers (auto-visible when topic active, no checkboxes):**
+- [x] Sanitation Visits - Close (zoom-dependent visibility)
+- [x] Sanitation Visits - Intermediate (zoom-dependent visibility)
+- [x] Sanitation Visits - Far (zoom-dependent visibility)
+- ~~CollectionBoundary~~ - **NOT a Feature Layer** - it's an `ArcGISMapServiceLayer` (dynamic map service), not queryable for GeoJSON. The "twice-a-week" boundary outline is included in the `CollectionBoundaryPickupPHL__2026` tiled layer.
+
+**Auto-Activating Layers When Topic Opens:**
+The PickupPHL topic needs to auto-activate certain layers when the topic accordion is expanded:
+- [x] Implement `defaultTopicLayers` support in TopicAccordion or Layerboard
+  - Added `setLayerVisible()` and `setLayersVisible()` methods to Layerboard.vue
+  - Exposed via slot props for custom sidebars
+- [x] When PickupPHL topic expands, auto-toggle ON: Sanitation Visits layers
+  - Implemented `defaultTopicLayersMap` in App.vue
+  - `onTopicToggle()` now activates/deactivates default layers when topics open/close
+- [x] These layers have `shouldShowCheckbox: false` so they're NOT listed in UI, just auto-activated
+
+**TiledLayers:**
+- [x] Create `CollectionDayLegend.vue` component with checkbox "Show Collection Day"
+- [x] Checkbox toggles `collectionDay` tiled layer on/off
+- [x] Display day-of-week legend (Monday-Friday with colors)
+- [x] Updated tiled layer URL to `CollectionBoundaryPickupPHL__2026` (2026 version from WebMap)
+
+**Tiled Layer Content (rendered server-side by MapServer):**
+The `collectionDay` tiled layer at `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqeF9q/arcgis/rest/services/CollectionBoundaryPickupPHL__2026/MapServer` includes:
+- [x] Verify tiled layer renders day-of-week color bands correctly
+- [x] Verify tiled layer renders dual-color labels (e.g., "Fri/Tue" where "Fri/" is blue #004da8, "Tue" is red #ff0000)
+- [x] Labels are rendered server-side by MapServer - no client-side implementation needed
+- [x] Primary day (blue) = Trash & Recycling collection day
+- [x] Secondary day (red) = Trash Only collection day (for twice-a-week areas)
+
+**DataSources:**
+- [x] Fetch `notices` data source, filter for type "pickupphl", display alerts
+- [x] Fetch `trashDay` data source, display collection status in TrashStatus section
+
+**Custom Components:**
+- [x] Trash status display (inline in App.vue, not separate component) - displays current trash/recycling collection status
+- [x] Create `CollectionDayLegend.vue` - checkbox + day-of-week color legend
+
+**Topic UI Content (matching original pickup.js components array):**
+- [x] Add intro paragraph: "See where trash and recycling trucks have visited today, and view where trash and recycling are collected each day of the week."
+- [x] Add "Read disclaimer" popover link with GPS technology disclaimer text
+- [x] Add dynamic notices alert paragraph (from notices data source)
+- [x] Add TrashStatus section showing collection status (from trashDay data source)
+- [x] Add "Additional Information" info box with links to phila.gov/trashday and 311
+
+##### 8.7.7.5 PermitPHL Topic
+
+Implement the PermitPHL (street closure permits) topic to match production functionality.
+
+**WebMap Feature Layers (with checkboxes):**
+- [x] Current Closures (points)
+- [x] Current Closures (segments)
+- [x] Future Closures (points)
+- [x] Future Closures (segments)
+
+**DataSources:**
+- [x] Fetch `notices` data source, filter for type "permitphl", display alerts
+
+**Topic UI Content:**
+- [x] Add intro paragraph: "View street and sidewalk closure permits."
+- [x] Add dynamic notices alert (from notices data source, type "permitphl")
+- [x] Configure layer display options (no opacity slider, matching original)
+- [x] Configure default topic layers (Current Closures auto-activate when topic opens)
+- [x] Add "Additional Information" info box with links to apply for permit, report violation, FAQ
+
+##### 8.7.7.6 PavePHL Topic
+
+Implement the PavePHL (paving and road conditions) topic to match production functionality.
+
+**WebMap Feature Layers (with checkboxes):**
+- [x] Streets Status for Paving Season
+- [x] Street Condition Index
+- [x] Five Year Paving Plan
+- [ ] Highway Districts (commented out in original)
+- [ ] Council Districts (commented out in original)
+- [ ] State Routes (commented out in original)
+
+**DataSources:**
+- [ ] Fetch `weekPave` data source - weekly paving schedule (optional - popover tables)
+- [ ] Fetch `weekMill` data source - weekly milling schedule (optional - popover tables)
+- [x] Fetch `notices` data source, filter for type "pavephl", display alerts
+
+**Topic UI Content:**
+- [x] Add intro paragraph: "View status of paving operations."
+- [x] Add dynamic notices alert (from notices data source, type "pavephl")
+- [x] Configure layer display options (no opacity slider, matching original)
+- [x] Configure default topic layers (Streets Status for Paving Season auto-activate)
+- [x] Add "Paving Steps" info box with 4-step explanation (Milling, Adjustments, Paving, Linestriping)
+
+**Follow-up Issues:**
+- [x] Use radio buttons instead of checkboxes for layer selection (only one layer visible at a time)
+- [x] Fix layer order to match original: Streets Status for Paving Season, Street Condition Index, Five Year Paving Plan
+- [x] Fix Street Condition Index layer colors (should be green, orange, red)
+
+##### 8.7.7.7 PlowPHL Topic
+
+Implement the PlowPHL (snow removal and winter operations) topic to match production functionality.
+
+**WebMap Feature Layers (auto-visible based on deployment type, no checkboxes):**
+- [x] Treated Street Status (via tiled layer)
+- [x] Streets not treated by the City (via tiled layer)
+
+**TiledLayers (conditional visibility based on storms data):**
+- [x] `plowTreatedStreetsStatus` - visible during Full/Conditional/Highways deployments
+- [x] `plowNotTreatedStreets` - visible during Full deployments
+- [x] `plowConditional` - visible during Conditional deployments
+- [x] `plowHighways` - visible during Highways Only deployments
+
+**DataSources:**
+- [x] Fetch `storms` data source - current deployment type (Full/Conditional/Highways/None)
+- [x] Fetch `notices` data source, filter for type "plowphl", display alerts
+
+**Custom Components:**
+- [x] Create `PlowDeploymentLegend.vue` - dynamic legend based on deployment type
+- [x] Deployment status banner displayed inline in topic (not separate DeploymentType.vue)
+- [x] Tiled layer toggling based on deployment type (inline in App.vue toggle handler)
+
+##### 8.7.7.8 SweepPHL Topic
+
+Implement the SweepPHL (street sweeping) topic to match production functionality.
+
+**WebMap Feature Layers (with radio buttons - mutually exclusive):**
+- [x] All Route Locations
+- [x] Swept Streets
+- [x] 2022 Litter Index
+- [x] Day-specific Route Locations (Monday-Thursday)
+
+**DataSources:**
+- [x] Fetch `notices` data source, filter for type "sweepphl", display alerts
+
+**Custom Components:**
+- [x] Create `SweepLegend.vue` - radio button group to toggle between sweep layers
+  - Manages layer visibility (no default layers in topic config)
+  - Mounts only when topic opens (v-if on expandedTopic)
+  - Initializes with Swept Streets + day-specific route on mount
+  - Turns off all sweep layers when topic closes
+
+#### 8.7.8 Map Controls Configuration
+
+Add props to Layerboard.vue for configuring map control positions.
+
+**Map Control Position Props:**
+- [x] Add `basemapControlPosition` prop (default: 'top-right')
+- [x] Add `navigationControlPosition` prop (default: 'bottom-right')
+- [x] Add `geolocationControlPosition` prop (default: 'bottom-right')
+- [x] Add `searchControlPosition` prop (default: 'top-left')
+- [x] Add `drawControlPosition` prop (default: 'bottom-left', null to remove)
+- [x] Pass control position props through to MapPanel/phila-ui-map-core
+
+**Position Values:**
+- 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+
+**StreetSmartPHL Configuration:**
+- Search control: top-left (default)
+- Basemap, navigation, geolocation: bottom-left
+- Draw control: removed (null)
+
+---
+
+### 8.8 Testing and Validation
+
+Ensure the framework and examples work correctly.
+
+#### Manual Testing
+
+- [ ] Run `pnpm dev:openmaps` and verify all features work
+- [ ] Run `pnpm dev:streetsmartphl` and verify topics mode works
+- [ ] Test layer toggling, legends, opacity
+- [ ] Test popups and feature highlighting
+- [ ] Test search and geolocation
+- [ ] Test basemap switching
+
+#### Build Testing
+
+- [ ] Run `pnpm build` and verify dist/ output
+- [ ] Verify TypeScript declarations are generated
+- [ ] Test importing framework in a fresh project
+
+---
+
+### 8.9 Documentation
+
+Write documentation for framework consumers.
+
+#### Update README.md
+
+- [ ] Explain what vue3-layerboard is
+- [ ] Installation instructions
+- [ ] Basic usage example (flat mode)
+- [ ] Topics mode example
+- [ ] Link to example apps
+- [ ] API reference (or link to docs)
+
+---
+
+### 8.10 Publishing (Future)
+
+Once framework is stable, publish to npm.
+
+- [ ] Publish beta: `npm publish --tag beta`
+- [ ] Test in separate project
+- [ ] Publish stable when ready
+
+---
+
+### 8.11 Consumer App Migration (Future)
+
+After framework is published, migrate production apps.
+
+#### OpenMaps Production Migration
+
+- [ ] Create branch in original `openmaps` repo
+- [ ] Install `@phila/vue3-layerboard`
+- [ ] Replace framework code with package imports
+- [ ] Keep only app-specific config and layers
+- [ ] Test and deploy
+
+#### StreetSmartPHL Production Migration
+
+- [ ] Create `vue3-streetsmartphl` repo
+- [ ] Install `@phila/vue3-layerboard`
+- [ ] Create topic Vue components
+- [ ] Migrate from old Vue 2 layerboard
+- [ ] Test and deploy
+
+---
+
+### Success Criteria for Phase 8
+
+- [ ] Repository renamed to vue3-layerboard
+- [ ] Framework builds as npm package
+- [ ] OpenMaps example runs with framework
+- [ ] StreetSmartPHL example runs with topics mode
+- [ ] TypeScript types are exported correctly
+- [ ] Documentation explains usage
 
 ## Technical Notes
 

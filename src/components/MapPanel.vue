@@ -5,6 +5,7 @@ import {
   CircleLayer,
   FillLayer,
   LineLayer,
+  RasterLayer,
   MapPopup,
   DrawTool,
 } from "@phila/phila-ui-map-core";
@@ -14,6 +15,7 @@ import type {
 } from "@phila/phila-ui-map-core";
 import type { LngLatLike, CircleLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 import bboxClip from "@turf/bbox-clip";
+import type { TiledLayerConfig } from "@/types/layer";
 
 // Bounds type for spatial queries
 interface Bounds {
@@ -23,14 +25,41 @@ interface Bounds {
   north: number;
 }
 
+// Control position type
+type ControlPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 // Props from parent
-const props = defineProps<{
-  visibleLayers: Set<string>;
-  layerOpacities: Record<string, number>;
-  layerList: Array<{ config: any; component: string }>;
-  cyclomediaConfig: CyclomediaConfig;
-  pictometryCredentials: PictometryCredentials;
-}>();
+const props = withDefaults(
+  defineProps<{
+    visibleLayers: Set<string>;
+    layerOpacities: Record<string, number>;
+    layerList: Array<{ config: any; component: string }>;
+    // Tiled layer props
+    tiledLayers?: TiledLayerConfig[];
+    visibleTiledLayers?: Set<string>;
+    tiledLayerOpacities?: Record<string, number>;
+    // Imagery props
+    cyclomediaConfig: CyclomediaConfig;
+    pictometryCredentials: PictometryCredentials;
+    // Map control positions
+    basemapControlPosition?: ControlPosition;
+    navigationControlPosition?: ControlPosition;
+    geolocationControlPosition?: ControlPosition;
+    searchControlPosition?: ControlPosition;
+    drawControlPosition?: ControlPosition | null;
+    cyclomediaButtonPosition?: ControlPosition;
+    pictometryButtonPosition?: ControlPosition;
+  }>(),
+  {
+    basemapControlPosition: 'top-right',
+    navigationControlPosition: 'bottom-right',
+    geolocationControlPosition: 'bottom-right',
+    searchControlPosition: 'top-left',
+    drawControlPosition: 'bottom-left',
+    cyclomediaButtonPosition: 'top-right',
+    pictometryButtonPosition: 'top-right',
+  }
+);
 
 // Emit events to parent
 const emit = defineEmits<{
@@ -270,6 +299,45 @@ const visibleLineLayers = computed(() =>
     .filter(l => l.config.type === "line" && isVisible(l.config.id) && hasSourceReady(l.config))
     .map(l => l.config)
 );
+
+// ============================================================================
+// TILED LAYER HELPERS
+// ============================================================================
+
+// Check if a tiled layer is visible
+function isTiledLayerVisible(layerId: string): boolean {
+  return props.visibleTiledLayers?.has(layerId) ?? false;
+}
+
+// Get tiled layer opacity
+function getTiledLayerOpacity(layerId: string): number {
+  return props.tiledLayerOpacities?.[layerId] ?? 1;
+}
+
+// Convert ESRI MapServer URL to tile URL template for MapLibre
+// ESRI tile services use {z}/{y}/{x} format
+function getEsriTileUrl(baseUrl: string): string {
+  // Remove trailing slash if present
+  const url = baseUrl.replace(/\/$/, '');
+  // ESRI MapServer tile endpoint pattern
+  return `${url}/tile/{z}/{y}/{x}`;
+}
+
+// Get raster source configuration for a tiled layer
+function getTiledLayerSource(layer: TiledLayerConfig) {
+  return {
+    type: 'raster' as const,
+    tiles: [getEsriTileUrl(layer.url)],
+    tileSize: 256,
+    attribution: layer.attribution || '',
+  };
+}
+
+// Get visible tiled layers
+const visibleTiledLayersList = computed(() => {
+  if (!props.tiledLayers) return [];
+  return props.tiledLayers.filter(layer => isTiledLayerVisible(layer.id));
+});
 
 // ============================================================================
 // GENERIC SOURCE & PAINT HELPERS
@@ -937,16 +1005,16 @@ watch(currentFeatureIndex, () => {
   <div class="map-panel">
     <MapComponent
       ref="mapRef"
-      :basemap-change-controls="{ toggle: true, dropdown: true, position: 'top-right' }"
-      :navigation-controls="{ position: 'bottom-right' }"
-      :geolocation-control="{ position: 'bottom-right' }"
-      :map-search-control="{ position: 'top-left' }"
+      :navigation-controls="{ position: props.navigationControlPosition }"
+      :geolocation-control="{ position: props.geolocationControlPosition }"
+      :basemap-change-controls="{ toggle: true, dropdown: true, position: props.basemapControlPosition }"
+      :map-search-control="{ position: props.searchControlPosition }"
       :enable-cyclomedia="true"
       :cyclomedia-config="props.cyclomediaConfig"
-      cyclomedia-button-position="top-right"
+      :cyclomedia-button-position="props.cyclomediaButtonPosition"
       :enable-pictometry="true"
       :pictometry-credentials="props.pictometryCredentials"
-      pictometry-button-position="top-right"
+      :pictometry-button-position="props.pictometryButtonPosition"
       tool-panel-layout="vertical"
       :tool-panel-split-ratio="50"
       @zoom="onZoomChange"
@@ -954,8 +1022,19 @@ watch(currentFeatureIndex, () => {
       @moveend="onMoveEnd"
       @load="onMapLoad"
     >
-      <!-- Draw Tool -->
-      <DrawTool position="bottom-left" />
+      <!-- Draw Tool - only render if position is not null -->
+      <DrawTool v-if="props.drawControlPosition !== null" :position="props.drawControlPosition" />
+
+      <!-- Tiled Layers (ESRI MapServer raster tiles) - render below vector layers -->
+      <RasterLayer
+        v-for="tiledLayer in visibleTiledLayersList"
+        :key="'tiled-' + tiledLayer.id"
+        :id="'tiled-' + tiledLayer.id"
+        :source="getTiledLayerSource(tiledLayer)"
+        :paint="{ 'raster-opacity': getTiledLayerOpacity(tiledLayer.id) }"
+        :minzoom="tiledLayer.minZoom"
+        :maxzoom="tiledLayer.maxZoom"
+      />
 
       <!-- Circle Layers - positioned before highlight layers -->
       <CircleLayer

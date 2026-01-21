@@ -5,7 +5,7 @@
  * Extracted from the CLI converter script for use at runtime.
  */
 
-import type { LayerConfig, LegendItem, PopupConfig } from '@/layers/types';
+import type { LayerConfig, LegendItem, PopupConfig } from '@/types';
 
 // ============================================================================
 // TYPES
@@ -43,6 +43,8 @@ export interface EsriRenderer {
   field?: string;
   field1?: string;
   defaultSymbol?: EsriSymbol;
+  /** Minimum value for classBreaks renderer (used for label generation) */
+  minValue?: number;
   uniqueValueInfos?: Array<{
     value: string | number;
     label?: string;
@@ -50,6 +52,7 @@ export interface EsriRenderer {
   }>;
   classBreakInfos?: Array<{
     classMaxValue: number;
+    classMinValue?: number;
     label?: string;
     symbol?: EsriSymbol;
   }>;
@@ -618,6 +621,44 @@ function convertClassBreaksRenderer(renderer: EsriRenderer, layerOpacity?: numbe
         };
       }
     }
+  } else if (geomType === 'line') {
+    // Build step expression for line-color
+    // step format: ["step", ["get", field], color0, stop1, color1, stop2, color2, ...]
+    const colorStep: unknown[] = ['step', ['get', field]];
+
+    // Add first color (for values below first break)
+    colorStep.push(esriColorToCSS(classBreakInfos[0]?.symbol?.color));
+
+    // Track previous class max value for label generation
+    let prevMaxValue = renderer.minValue ?? 0;
+
+    for (let i = 0; i < classBreakInfos.length; i++) {
+      const info = classBreakInfos[i]!;
+
+      if (i > 0) {
+        // Add break value and color
+        colorStep.push(classBreakInfos[i - 1]!.classMaxValue);
+        colorStep.push(esriColorToCSS(info.symbol?.color));
+      }
+
+      legend.push({
+        type: 'line' as const,
+        color: esriColorToCSS(info.symbol?.color),
+        width: info.symbol?.width || firstSymbol?.width || 2,
+        label: info.label || `${prevMaxValue} - ${info.classMaxValue}`,
+      });
+
+      prevMaxValue = info.classMaxValue + 1;
+    }
+
+    // Get line width from first symbol
+    const lineWidth = firstSymbol?.width || 2;
+
+    paint = {
+      'line-color': colorStep,
+      'line-width': lineWidth,
+      'line-opacity': convertOpacity(layerOpacity),
+    };
   }
 
   return { paint, legend, geomType, outlinePaint };
@@ -1115,13 +1156,18 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
       let serviceLabelMap: Map<string, string> | undefined;
 
       // HYBRID APPROACH: Use service renderer + description when needed
-      // This handles two scenarios:
+      // This handles three scenarios:
       //
-      // Scenario 1: Missing renderer in WebMap (e.g., City Limits)
-      //   - WebMap has no drawingInfo.renderer at all
+      // Scenario 1: Missing drawingInfo entirely in WebMap
+      //   - WebMap has no layerDefinition.drawingInfo at all
       //   - Need to fetch service's default renderer to know how to style the layer
       //
-      // Scenario 2: Incorrect renderer in WebMap (layers in USE_SERVICE_RENDERER array)
+      // Scenario 2: Missing renderer in WebMap (e.g., City Limits, Street Condition Index)
+      //   - WebMap has drawingInfo but no renderer inside it
+      //   - Need to fetch service's default renderer to know how to style the layer
+      //   - Example: Street Condition Index has classBreaks renderer in service but not in WebMap
+      //
+      // Scenario 3: Incorrect renderer in WebMap (layers in USE_SERVICE_RENDERER array)
       //   - WebMap has a renderer but it's wrong (wrong field, wrong colors)
       //   - Service has the correct renderer
       //   - Service description may have human-readable labels that aren't in the renderer
@@ -1134,8 +1180,11 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
       // The parsed labels from description override the renderer's labels, creating a hybrid:
       //   - Field and colors from service renderer
       //   - Labels from service description (if available) or renderer labels (fallback)
-      if ((!drawingInfo?.renderer && layer.url) || USE_SERVICE_RENDERER.includes(layer.title)) {
-        if (USE_SERVICE_RENDERER.includes(layer.title)) {
+      const needsServiceRenderer = !drawingInfo || !drawingInfo.renderer;
+      const forceServiceRenderer = USE_SERVICE_RENDERER.includes(layer.title);
+
+      if ((needsServiceRenderer || forceServiceRenderer) && layer.url) {
+        if (forceServiceRenderer) {
           console.log(`[Transformer] Layer "${layer.title}" configured to use service renderer instead of WebMap renderer`);
         } else {
           console.log(`[Transformer] Layer "${layer.title}" has no renderer in WebMap, fetching from service...`);
@@ -1144,6 +1193,7 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
         const serviceData = await fetchServiceDrawingInfo(layer.url);
         if (serviceData) {
           drawingInfo = serviceData.drawingInfo;
+          console.log(`[Transformer] Fetched renderer from service for "${layer.title}":`, serviceData.drawingInfo?.renderer?.type);
 
           // Parse description for custom labels (if description exists and is parseable)
           // This allows us to merge service renderer (field/colors) with custom labels (from description)
@@ -1153,6 +1203,8 @@ export async function transformWebMapToLayerConfigs(webMapJson: EsriWebMap): Pro
               console.log(`[Transformer] Parsed ${serviceLabelMap.size} custom labels from service description`);
             }
           }
+        } else {
+          console.warn(`[Transformer] Failed to fetch renderer from service for "${layer.title}"`);
         }
       }
 

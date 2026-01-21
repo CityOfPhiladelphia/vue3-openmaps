@@ -1,22 +1,54 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import type { LayerConfig } from "@/types/layer";
 
-// Props
-const props = defineProps<{
-  layerList: Array<{ config: any; component: string }>;
-  visibleLayers: Set<string>;
-  layerOpacities: Record<string, number>;
-  loadingLayers: Set<string>;
-  layerErrors: Record<string, string>;
-  currentZoom: number;
-  searchQuery: string;
-  layerMetadata: Record<string, string>;
-}>();
+// Props with configuration options
+const props = withDefaults(
+  defineProps<{
+    /** Array of layer configurations with component type */
+    layerList: Array<{ config: LayerConfig; component: string }>;
+    /** Set of currently visible layer IDs */
+    visibleLayers: Set<string>;
+    /** Map of layer IDs to opacity values (0-1) */
+    layerOpacities: Record<string, number>;
+    /** Set of layer IDs currently loading */
+    loadingLayers: Set<string>;
+    /** Map of layer IDs to error messages */
+    layerErrors: Record<string, string>;
+    /** Current map zoom level */
+    currentZoom: number;
+    /** Current search query */
+    searchQuery: string;
+    /** Map of layer URLs to metadata page URLs */
+    layerMetadata: Record<string, string>;
+    /** Display mode: 'flat' for simple list, 'topics' for accordion grouping */
+    mode?: "flat" | "topics";
+    /** Whether to show the search box */
+    showSearch?: boolean;
+    /** Whether to show opacity sliders */
+    showOpacity?: boolean;
+    /** Whether to show legends */
+    showLegend?: boolean;
+    /** Placeholder text for search input */
+    searchPlaceholder?: string;
+  }>(),
+  {
+    mode: "flat",
+    showSearch: true,
+    showOpacity: true,
+    showLegend: true,
+    searchPlaceholder: "Search layers...",
+  }
+);
 
-// Emit events
+// Emit events for layer changes
+// Note: Vue converts @kebab-case listeners to camelCase, so we emit camelCase
 const emit = defineEmits<{
+  /** Emitted when a layer's visibility is toggled */
   (e: "toggleLayer", layerId: string): void;
+  /** Emitted when a layer's opacity is changed */
   (e: "setOpacity", layerId: string, opacity: number): void;
+  /** Emitted when the search query changes */
   (e: "updateSearch", query: string): void;
 }>();
 
@@ -26,7 +58,7 @@ const filteredLayerList = computed(() => {
     return props.layerList;
   }
   const query = props.searchQuery.toLowerCase();
-  return props.layerList.filter(layer =>
+  return props.layerList.filter((layer) =>
     layer.config.title.toLowerCase().includes(query)
   );
 });
@@ -47,7 +79,7 @@ function getMetadataUrl(layerUrl: string): string | null {
 
 // Check if any layer in the list has metadata (to reserve space for info icons)
 const anyLayerHasMetadata = computed(() => {
-  return props.layerList.some(layer => getMetadataUrl(layer.config.url));
+  return props.layerList.some((layer) => getMetadataUrl(layer.config.url));
 });
 
 // Helper functions
@@ -67,10 +99,10 @@ function getLayerError(layerId: string): string | null {
   return props.layerErrors[layerId] || null;
 }
 
-function isLayerAvailableAtZoom(config: Record<string, unknown>): boolean {
+function isLayerAvailableAtZoom(config: LayerConfig): boolean {
   const zoom = props.currentZoom;
-  const minZoom = config.minZoom as number | undefined;
-  const maxZoom = config.maxZoom as number | undefined;
+  const minZoom = config.minZoom;
+  const maxZoom = config.maxZoom;
   if (minZoom !== undefined && zoom < minZoom) return false;
   if (maxZoom !== undefined && zoom > maxZoom) return false;
   return true;
@@ -87,24 +119,40 @@ function onToggleLayer(layerId: string) {
 
 function onOpacityChange(layerId: string, event: Event) {
   const input = event.target as HTMLInputElement;
-  emit("setOpacity", layerId, parseFloat(input.value));
+  const opacity = parseFloat(input.value);
+  emit("setOpacity", layerId, opacity);
 }
 </script>
 
 <template>
   <aside class="layer-panel">
-    <!-- Search box -->
-    <div class="search-box">
+    <!-- Search box (configurable) -->
+    <div v-if="showSearch" class="search-box">
       <input
         :value="searchQuery"
         type="text"
-        placeholder="Search layers..."
+        :placeholder="searchPlaceholder"
         class="search-input"
         @input="onSearchInput"
       />
     </div>
 
-    <div class="layer-list" :class="{ 'has-metadata': anyLayerHasMetadata }">
+    <!-- Topics mode: render slot content -->
+    <div v-if="mode === 'topics'" class="topics-container">
+      <slot name="topics">
+        <!-- Default: show message if no topics provided -->
+        <div class="no-topics">
+          No topic components provided. Use the "topics" slot to add TopicAccordion components.
+        </div>
+      </slot>
+    </div>
+
+    <!-- Flat mode: render layer list -->
+    <div
+      v-else
+      class="layer-list"
+      :class="{ 'has-metadata': anyLayerHasMetadata }"
+    >
       <div
         v-for="layer in filteredLayerList"
         :key="layer.config.id"
@@ -121,13 +169,26 @@ function onOpacityChange(layerId: string, event: Event) {
             title="View metadata"
             @click.stop
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
           </a>
-          <span v-else-if="anyLayerHasMetadata" class="metadata-placeholder"></span>
+          <span
+            v-else-if="anyLayerHasMetadata"
+            class="metadata-placeholder"
+          ></span>
 
           <label
             class="layer-checkbox"
@@ -144,21 +205,34 @@ function onOpacityChange(layerId: string, event: Event) {
             />
             <span class="layer-title">
               {{ layer.config.title }}
-              <span v-if="isLayerLoading(layer.config.id)" class="loading-indicator">
+              <span
+                v-if="isLayerLoading(layer.config.id)"
+                class="loading-indicator"
+              >
                 Loading...
               </span>
-              <span v-if="getLayerError(layer.config.id)" class="error-indicator" :title="getLayerError(layer.config.id) || ''">
+              <span
+                v-if="getLayerError(layer.config.id)"
+                class="error-indicator"
+                :title="getLayerError(layer.config.id) || ''"
+              >
                 Error
               </span>
-              <span v-if="!isLayerAvailableAtZoom(layer.config)" class="zoom-indicator">
+              <span
+                v-if="!isLayerAvailableAtZoom(layer.config)"
+                class="zoom-indicator"
+              >
                 (zoom in)
               </span>
             </span>
           </label>
         </div>
 
-        <!-- Opacity slider (shown when layer is visible) -->
-        <div v-if="isVisible(layer.config.id)" class="opacity-control">
+        <!-- Opacity slider (shown when layer is visible and showOpacity is true) -->
+        <div
+          v-if="showOpacity && isVisible(layer.config.id)"
+          class="opacity-control"
+        >
           <label class="opacity-label">
             Opacity: {{ Math.round(getLayerOpacity(layer.config.id) * 100) }}%
           </label>
@@ -173,8 +247,11 @@ function onOpacityChange(layerId: string, event: Event) {
           />
         </div>
 
-        <!-- Legend (shown when layer is visible and has legend items) -->
-        <ul v-if="isVisible(layer.config.id) && layer.config.legend?.length" class="layer-legend">
+        <!-- Legend (shown when layer is visible, showLegend is true, and has legend items) -->
+        <ul
+          v-if="showLegend && isVisible(layer.config.id) && layer.config.legend?.length"
+          class="layer-legend"
+        >
           <li
             v-for="(item, index) in layer.config.legend"
             :key="index"
@@ -243,6 +320,19 @@ function onOpacityChange(layerId: string, event: Event) {
 .search-input:focus {
   outline: none;
   border-color: #0f4d90;
+}
+
+/* Topics container for accordion mode */
+.topics-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.no-topics {
+  padding: 16px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
 }
 
 .layer-list {

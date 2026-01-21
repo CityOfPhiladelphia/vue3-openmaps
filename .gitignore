@@ -10,9 +10,12 @@ lerna-debug.log*
 node_modules
 .DS_Store
 dist
+dist-openmaps
+dist-streetsmartphl
 dist-ssr
 coverage
 *.local
+package-lock.json
 
 # Environment variables
 .env
