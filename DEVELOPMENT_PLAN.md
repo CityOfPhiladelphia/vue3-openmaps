@@ -2180,11 +2180,11 @@ The PickupPHL topic needs to auto-activate certain layers when the topic accordi
 
 **Tiled Layer Content (rendered server-side by MapServer):**
 The `collectionDay` tiled layer at `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqeF9q/arcgis/rest/services/CollectionBoundaryPickupPHL__2026/MapServer` includes:
-- [ ] Verify tiled layer renders day-of-week color bands correctly
-- [ ] Verify tiled layer renders dual-color labels (e.g., "Fri/Tue" where "Fri/" is blue #004da8, "Tue" is red #ff0000)
-- [ ] Labels are rendered server-side by MapServer - no client-side implementation needed
-- [ ] Primary day (blue) = Trash & Recycling collection day
-- [ ] Secondary day (red) = Trash Only collection day (for twice-a-week areas)
+- [x] Verify tiled layer renders day-of-week color bands correctly
+- [x] Verify tiled layer renders dual-color labels (e.g., "Fri/Tue" where "Fri/" is blue #004da8, "Tue" is red #ff0000)
+- [x] Labels are rendered server-side by MapServer - no client-side implementation needed
+- [x] Primary day (blue) = Trash & Recycling collection day
+- [x] Secondary day (red) = Trash Only collection day (for twice-a-week areas)
 
 **DataSources:**
 - [x] Fetch `notices` data source, filter for type "pickupphl", display alerts
@@ -2206,13 +2206,20 @@ The `collectionDay` tiled layer at `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqe
 Implement the PermitPHL (street closure permits) topic to match production functionality.
 
 **WebMap Feature Layers (with checkboxes):**
-- [ ] Current Closures (points)
-- [ ] Current Closures (segments)
-- [ ] Future Closures (points)
-- [ ] Future Closures (segments)
+- [x] Current Closures (points)
+- [x] Current Closures (segments)
+- [x] Future Closures (points)
+- [x] Future Closures (segments)
 
 **DataSources:**
-- [ ] Fetch `notices` data source, filter for type "permitphl", display alerts
+- [x] Fetch `notices` data source, filter for type "permitphl", display alerts
+
+**Topic UI Content:**
+- [x] Add intro paragraph: "View street and sidewalk closure permits."
+- [x] Add dynamic notices alert (from notices data source, type "permitphl")
+- [x] Configure layer display options (no opacity slider, matching original)
+- [x] Configure default topic layers (Current Closures auto-activate when topic opens)
+- [x] Add "Additional Information" info box with links to apply for permit, report violation, FAQ
 
 ##### 8.7.7.6 PavePHL Topic
 

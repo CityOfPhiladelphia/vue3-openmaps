@@ -42,6 +42,20 @@ const layerDisplayOptions: Record<string, LayerDisplayOptions> = {
   },
   // Note: 'collectionboundary' removed - it's an ArcGISMapServiceLayer, not queryable as GeoJSON
   // The boundary is rendered as part of the CollectionBoundaryPickupPHL__2026 tiled layer
+
+  // PermitPHL - All layers have no opacity slider (matching original shouldShowSlider: false)
+  'current-closures-points': {
+    shouldShowSlider: false,
+  },
+  'current-closures-segments': {
+    shouldShowSlider: false,
+  },
+  'future-closures-points': {
+    shouldShowSlider: false,
+  },
+  'future-closures-segments': {
+    shouldShowSlider: false,
+  },
 }
 
 // ============================================================================
@@ -73,6 +87,13 @@ const pickupDefaultLayers = [
 ]
 
 // PermitPHL topic - Street closure permits
+// Default layers that auto-activate when topic opens
+const permitDefaultLayers = [
+  'current-closures-points',
+  'current-closures-segments',
+]
+
+// PermitPHL topic - All layer IDs
 const permitLayerIds = [
   'current-closures-points',
   'current-closures-segments',
@@ -165,7 +186,7 @@ const pictometryCredentials: PictometryCredentials = {
 // Maps topic ID to layers that auto-activate when that topic opens
 const defaultTopicLayersMap: Record<string, string[]> = {
   pickup: pickupDefaultLayers,
-  // Other topics can have default layers added here as needed
+  permit: permitDefaultLayers,
 }
 
 // ============================================================================
@@ -327,6 +348,25 @@ function getTrashStatusIcon(dataSourcesState: Record<string, { data: unknown }>)
   const isOnSchedule = message === 'Trash and recycling collections are on schedule.'
   return isOnSchedule ? '✓' : '⚠️'
 }
+
+// ============================================================================
+// DATA SOURCE HELPERS FOR PERMITPHL
+// ============================================================================
+
+// Get permit-specific notices from the notices data source
+function getPermitNotice(dataSourcesState: Record<string, { data: unknown }>): string | null {
+  const noticesData = dataSourcesState?.notices?.data as Notice[] | null
+  if (!noticesData || !Array.isArray(noticesData)) return null
+
+  const permitNotices = noticesData.filter(
+    (n) => n.Type?.toLowerCase() === 'permitphl'
+  )
+
+  if (permitNotices.length > 0) {
+    return permitNotices[0].Description
+  }
+  return null
+}
 </script>
 
 <template>
@@ -426,6 +466,21 @@ function getTrashStatusIcon(dataSourcesState: Record<string, { data: unknown }>)
           :layer-ids="permitLayerIds"
           @toggle="(expanded) => onTopicToggle('permit', expanded)"
         >
+          <!-- Topic intro paragraph -->
+          <p class="topic-intro">
+            View street and sidewalk closure permits.
+          </p>
+
+          <!-- Notices alert (from notices data source) -->
+          <div
+            v-if="getPermitNotice(dataSourcesState)"
+            class="notice-alert"
+          >
+            <span class="notice-icon">⚠️</span>
+            <span v-html="getPermitNotice(dataSourcesState)"></span>
+          </div>
+
+          <!-- Layer checkboxes -->
           <LayerCheckboxSet
             :layers="getLayersForTopic(layers, permitLayerIds)"
             :visible-layer-ids="visibleLayers"
@@ -433,7 +488,7 @@ function getTrashStatusIcon(dataSourcesState: Record<string, { data: unknown }>)
             :loading-layer-ids="loadingLayers"
             :layer-errors="layerErrors"
             :current-zoom="currentZoom"
-            :show-opacity="true"
+            :show-opacity="false"
             :show-legend="true"
             @toggle-layer="toggleLayer"
             @set-opacity="setOpacity"
@@ -441,6 +496,20 @@ function getTrashStatusIcon(dataSourcesState: Record<string, { data: unknown }>)
           <p v-if="getLayersForTopic(layers, permitLayerIds).length === 0" class="no-layers">
             No matching layers found
           </p>
+
+          <!-- Additional Information box -->
+          <div class="info-box">
+            <h4>Additional Information</h4>
+            <p>
+              To apply for a permit, visit <a href="https://stsweb.phila.gov/streetclosure/" target="_blank" rel="noopener">streetclosure</a>
+            </p>
+            <p>
+              To report a violation, <a href="http://iframe.publicstuff.com/#/?client_id=242&request_type_id=1012280" target="_blank" rel="noopener">submit a 311 request</a>
+            </p>
+            <p>
+              Download FAQ doc <a href="http://stsweb.phila.gov/permitPHL/FAQ.pdf" target="_blank" rel="noopener">here</a>
+            </p>
+          </div>
         </TopicAccordion>
 
         <!-- PavePHL Topic -->
