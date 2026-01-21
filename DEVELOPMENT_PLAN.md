@@ -2194,6 +2194,13 @@ The `collectionDay` tiled layer at `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqe
 - [ ] Create `TrashStatus.vue` - displays current trash/recycling collection status
 - [x] Create `CollectionDayLegend.vue` - checkbox + day-of-week color legend
 
+**Topic UI Content (matching original pickup.js components array):**
+- [x] Add intro paragraph: "See where trash and recycling trucks have visited today, and view where trash and recycling are collected each day of the week."
+- [x] Add "Read disclaimer" popover link with GPS technology disclaimer text
+- [ ] Add dynamic notices alert paragraph (requires notices data source)
+- [ ] Add TrashStatus component showing collection status (requires trashDay data source)
+- [x] Add "Additional Information" info box with links to phila.gov/trashday and 311
+
 ##### 8.7.7.5 PermitPHL Topic
 
 Implement the PermitPHL (street closure permits) topic to match production functionality.

@@ -289,11 +289,43 @@ function getLayersForTopic(
           :layer-ids="pickupLayerIds"
           @toggle="(expanded) => onTopicToggle('pickup', expanded)"
         >
+          <!-- Topic intro paragraph -->
+          <p class="topic-intro">
+            See where trash and recycling trucks have visited today, and view where trash and recycling are collected each day of the week.
+          </p>
+
+          <!-- Disclaimer popover link -->
+          <details class="disclaimer-details">
+            <summary class="disclaimer-link">Read disclaimer</summary>
+            <div class="disclaimer-content">
+              <p>
+                Disclaimer: The Streets Department is beta testing GPS technology.
+                Outages and interruptions may occur. The Streets Department will
+                do its best to notify the public if outages occur.
+              </p>
+              <p>
+                Note: This technology processes data every 15 minutes. A visited
+                status can take 15 to 45 minutes to appear on the map.
+              </p>
+            </div>
+          </details>
+
           <!-- Collection Day tiled layer checkbox + legend -->
           <CollectionDayLegend
             :visible-tiled-layers="visibleTiledLayers"
             :toggle-tiled-layer="toggleTiledLayer"
           />
+
+          <!-- Additional Information box -->
+          <div class="info-box">
+            <h4>Additional Information</h4>
+            <p>
+              Visit <a href="https://www.phila.gov/trashday/" target="_blank" rel="noopener">phila.gov/trashday</a> to find your trash day and to get service updates.
+            </p>
+            <p>
+              <a href="https://www.phila.gov/311/form/Pages/default.aspx" target="_blank" rel="noopener">Submit a 311 request</a> to report an issue.
+            </p>
+          </div>
         </TopicAccordion>
 
         <!-- PermitPHL Topic -->
@@ -426,5 +458,83 @@ function getLayersForTopic(
   color: #666;
   font-style: italic;
   font-size: 14px;
+}
+
+/* Topic intro paragraph */
+.topic-intro {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+}
+
+/* Disclaimer details/popover */
+.disclaimer-details {
+  margin-bottom: 12px;
+}
+
+.disclaimer-link {
+  color: #0f4d90;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+.disclaimer-link:hover {
+  color: #21498b;
+}
+
+.disclaimer-content {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.disclaimer-content p {
+  margin: 0 0 8px 0;
+}
+
+.disclaimer-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Info box */
+.info-box {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #e8f4fd;
+  border: 1px solid #b8d4e8;
+  border-radius: 4px;
+}
+
+.info-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f4d90;
+}
+
+.info-box p {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.info-box p:last-child {
+  margin-bottom: 0;
+}
+
+.info-box a {
+  color: #0f4d90;
+  text-decoration: underline;
+}
+
+.info-box a:hover {
+  color: #21498b;
 }
 </style>
