@@ -2255,38 +2255,63 @@ Implement the PavePHL (paving and road conditions) topic to match production fun
 Implement the PlowPHL (snow removal and winter operations) topic to match production functionality.
 
 **WebMap Feature Layers (auto-visible based on deployment type, no checkboxes):**
-- [ ] Treated Street Status
-- [ ] Streets not treated by the City
+- [x] Treated Street Status (via tiled layer)
+- [x] Streets not treated by the City (via tiled layer)
 
 **TiledLayers (conditional visibility based on storms data):**
-- [ ] `plowTreatedStreetsStatus` - visible during Full/Conditional/Highways deployments
-- [ ] `plowNotTreatedStreets` - visible during Full deployments
-- [ ] `plowConditional` - visible during Conditional deployments
-- [ ] `plowHighways` - visible during Highways Only deployments
+- [x] `plowTreatedStreetsStatus` - visible during Full/Conditional/Highways deployments
+- [x] `plowNotTreatedStreets` - visible during Full deployments
+- [x] `plowConditional` - visible during Conditional deployments
+- [x] `plowHighways` - visible during Highways Only deployments
 
 **DataSources:**
-- [ ] Fetch `storms` data source - current deployment type (Full/Conditional/Highways/None)
-- [ ] Fetch `notices` data source, filter for type "plowphl", display alerts
+- [x] Fetch `storms` data source - current deployment type (Full/Conditional/Highways/None)
+- [x] Fetch `notices` data source, filter for type "plowphl", display alerts
 
 **Custom Components:**
-- [ ] Create `DeploymentType.vue` - displays current snow event deployment status
-- [ ] Create `PlowDeploymentLegend.vue` - dynamic legend based on deployment type
-- [ ] Create `TopicTiledLayers.vue` - conditionally shows tiled layers based on data state
+- [x] Create `PlowDeploymentLegend.vue` - dynamic legend based on deployment type
+- [x] Deployment status banner displayed inline in topic (not separate DeploymentType.vue)
+- [x] Tiled layer toggling based on deployment type (inline in App.vue toggle handler)
 
 ##### 8.7.7.8 SweepPHL Topic
 
 Implement the SweepPHL (street sweeping) topic to match production functionality.
 
-**WebMap Feature Layers (with checkboxes/radio buttons):**
-- [ ] All Route Locations
-- [ ] Swept Streets
-- [ ] 2022 Litter Index
+**WebMap Feature Layers (with radio buttons - mutually exclusive):**
+- [x] All Route Locations
+- [x] Swept Streets
+- [x] 2022 Litter Index
+- [x] Day-specific Route Locations (Monday-Thursday)
 
 **DataSources:**
-- [ ] Fetch `notices` data source, filter for type "sweepphl", display alerts
+- [x] Fetch `notices` data source, filter for type "sweepphl", display alerts
 
 **Custom Components:**
-- [ ] Create `SweepLegend.vue` - radio button group to toggle between sweep layers
+- [x] Create `SweepLegend.vue` - radio button group to toggle between sweep layers
+  - Manages layer visibility (no default layers in topic config)
+  - Mounts only when topic opens (v-if on expandedTopic)
+  - Initializes with Swept Streets + day-specific route on mount
+  - Turns off all sweep layers when topic closes
+
+#### 8.7.8 Map Controls Configuration
+
+Add props to Layerboard.vue for configuring map control positions.
+
+**Map Control Position Props:**
+- [x] Add `basemapControlPosition` prop (default: 'top-right')
+- [x] Add `navigationControlPosition` prop (default: 'bottom-right')
+- [x] Add `geolocationControlPosition` prop (default: 'bottom-right')
+- [x] Add `searchControlPosition` prop (default: 'top-left')
+- [x] Add `drawControlPosition` prop (default: 'bottom-left', null to remove)
+- [x] Pass control position props through to MapPanel/phila-ui-map-core
+
+**Position Values:**
+- 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+
+**StreetSmartPHL Configuration:**
+- Search control: top-left (default)
+- Basemap, navigation, geolocation: bottom-left
+- Draw control: removed (null)
 
 ---
 
