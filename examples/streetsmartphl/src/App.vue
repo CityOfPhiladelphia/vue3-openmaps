@@ -13,6 +13,7 @@ import TopicAccordion from '@/components/TopicAccordion.vue'
 import LayerCheckboxSet from '@/components/LayerCheckboxSet.vue'
 import LayerRadioButtonSet from '@/components/LayerRadioButtonSet.vue'
 import CollectionDayLegend from './components/CollectionDayLegend.vue'
+import PlowDeploymentLegend from './components/PlowDeploymentLegend.vue'
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 import type { LayerConfig, LayerDisplayOptions, TiledLayerConfig } from '@/types/layer'
 import type { DataSourceConfig } from '@/types/dataSource'
@@ -128,10 +129,9 @@ const paveLayerIds = [
 ]
 
 // PlowPHL topic - Snow removal and winter operations
-const plowLayerIds = [
-  'treated-street-status',
-  'streets-not-treated-by-the-city',
-]
+// Note: PlowPHL uses tiled layers from external MapServer, not WebMap feature layers
+// The layers shown depend on the current deployment type from the storms API
+const plowLayerIds: string[] = []
 
 // SweepPHL topic - Street sweeping
 const sweepLayerIds = [
@@ -145,19 +145,36 @@ const sweepLayerIds = [
 // ============================================================================
 // ESRI MapServer tiled layers separate from WebMap feature layers
 const tiledLayers: TiledLayerConfig[] = [
+  // PickupPHL - Collection Day bands with day-of-week colors
   {
-    // Collection Day bands with day-of-week colors and dual-color labels (Fri/Tue)
-    // Updated URL from WebMap bf08ea4ce7194f68934a7150567151ae (2026 version)
     id: 'collectionDay',
     title: 'Collection Day',
     url: 'https://tiles.arcgis.com/tiles/fLeGjb7u4uXqeF9q/arcgis/rest/services/CollectionBoundaryPickupPHL__2026/MapServer',
   },
-  // PlowPHL tiled layers (for future implementation)
-  // {
-  //   id: 'plowTreatedStreetsStatus',
-  //   title: 'Treated Street Status',
-  //   url: 'https://plowphl-services.phila.gov/arcweb/rest/services/Projects/TreatedStatus/MapServer',
-  // },
+  // PlowPHL - Treated street status (time-based coloring)
+  {
+    id: 'plowTreatedStreetsStatus',
+    title: 'Treated Street Status',
+    url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/TreatedStatus/MapServer',
+  },
+  // PlowPHL - Streets not treated by the city
+  {
+    id: 'plowNotTreatedStreets',
+    title: 'Streets Not Treated by City',
+    url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedCity/MapServer',
+  },
+  // PlowPHL - Streets not treated during conditional deployment
+  {
+    id: 'plowConditional',
+    title: 'Streets Not Treated (Conditional)',
+    url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedCond/MapServer',
+  },
+  // PlowPHL - Streets not treated during highways-only deployment
+  {
+    id: 'plowHighways',
+    title: 'Streets Not Treated (Highways Only)',
+    url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedHigh/MapServer',
+  },
 ]
 
 // ============================================================================
@@ -173,6 +190,12 @@ const dataSources: DataSourceConfig[] = [
   {
     id: 'trashDay',
     url: 'https://admin.phila.gov/wp-json/closures/v1/closure/',
+    type: 'http-get',
+  },
+  {
+    // PlowPHL - Storm/deployment status
+    id: 'storms',
+    url: 'https://stsweb.phila.gov/StreetsCityWorks/api/Storm/getStorm',
     type: 'http-get',
   },
 ]
@@ -405,6 +428,72 @@ function getPaveNotice(dataSourcesState: Record<string, { data: unknown }>): str
   }
   return null
 }
+
+// ============================================================================
+// DATA SOURCE HELPERS FOR PLOWPHL
+// ============================================================================
+
+// Interface for storms data
+interface StormsData {
+  Deployment?: string
+}
+
+// Deployment type constants
+const FULL_DEPLOYMENT = 'Full Deployment'
+const CONDITIONAL_DEPLOYMENT = 'Conditional Deployment'
+const HIGHWAYS_ONLY = 'Highways Only'
+
+// Get plow-specific notices from the notices data source
+function getPlowNotice(dataSourcesState: Record<string, { data: unknown }>): string | null {
+  const noticesData = dataSourcesState?.notices?.data as Notice[] | null
+  if (!noticesData || !Array.isArray(noticesData)) return null
+
+  const plowNotices = noticesData.filter(
+    (n) => n.Type?.toLowerCase() === 'plowphl'
+  )
+
+  if (plowNotices.length > 0) {
+    return plowNotices[0].Description
+  }
+  return null
+}
+
+// Get current deployment type from storms data source
+function getDeploymentType(dataSourcesState: Record<string, { data: unknown }>): string {
+  const stormsData = dataSourcesState?.storms?.data as StormsData | null
+  return stormsData?.Deployment || ''
+}
+
+// Check if there's an active snow event
+function hasActiveSnowEvent(dataSourcesState: Record<string, { data: unknown }>): boolean {
+  const deployment = getDeploymentType(dataSourcesState)
+  return deployment === FULL_DEPLOYMENT ||
+         deployment === CONDITIONAL_DEPLOYMENT ||
+         deployment === HIGHWAYS_ONLY
+}
+
+// Get the tiled layers to show based on deployment type
+function getPlowTiledLayersForDeployment(deploymentType: string): string[] {
+  const layers: string[] = []
+
+  if (deploymentType === FULL_DEPLOYMENT ||
+      deploymentType === CONDITIONAL_DEPLOYMENT ||
+      deploymentType === HIGHWAYS_ONLY) {
+    // Always show treated streets and not treated by city during active deployment
+    layers.push('plowTreatedStreetsStatus')
+    layers.push('plowNotTreatedStreets')
+  }
+
+  if (deploymentType === CONDITIONAL_DEPLOYMENT) {
+    layers.push('plowConditional')
+  }
+
+  if (deploymentType === HIGHWAYS_ONLY) {
+    layers.push('plowHighways')
+  }
+
+  return layers
+}
 </script>
 
 <template>
@@ -624,23 +713,83 @@ function getPaveNotice(dataSourcesState: Record<string, { data: unknown }>): str
           icon="snowflake"
           :expanded="expandedTopic === 'plow'"
           :layer-ids="plowLayerIds"
-          @toggle="(expanded) => onTopicToggle('plow', expanded)"
+          @toggle="(expanded) => {
+            onTopicToggle('plow', expanded)
+            // Auto-toggle plow tiled layers based on deployment type
+            if (expanded) {
+              const deploymentType = getDeploymentType(dataSourcesState)
+              const plowLayers = getPlowTiledLayersForDeployment(deploymentType)
+              for (const layerId of plowLayers) {
+                setTiledLayerVisible(layerId, true)
+              }
+            } else {
+              // Turn off all plow tiled layers when closing
+              setTiledLayerVisible('plowTreatedStreetsStatus', false)
+              setTiledLayerVisible('plowNotTreatedStreets', false)
+              setTiledLayerVisible('plowConditional', false)
+              setTiledLayerVisible('plowHighways', false)
+            }
+          }"
         >
-          <LayerCheckboxSet
-            :layers="getLayersForTopic(layers, plowLayerIds)"
-            :visible-layer-ids="visibleLayers"
-            :layer-opacities="layerOpacities"
-            :loading-layer-ids="loadingLayers"
-            :layer-errors="layerErrors"
-            :current-zoom="currentZoom"
-            :show-opacity="true"
-            :show-legend="true"
-            @toggle-layer="toggleLayer"
-            @set-opacity="setOpacity"
-          />
-          <p v-if="getLayersForTopic(layers, plowLayerIds).length === 0" class="no-layers">
-            No matching layers found
+          <!-- Topic intro paragraph -->
+          <p class="topic-intro">
+            View status of salting and plowing operations during a winter weather event.
           </p>
+
+          <!-- Disclaimer popover link -->
+          <details class="disclaimer-details">
+            <summary class="disclaimer-link">Read disclaimer</summary>
+            <div class="disclaimer-content">
+              <p>
+                Disclaimer: The Streets Department is beta testing GPS technology.
+                Outages and interruptions may occur. The Streets Department will
+                do its best to notify the public if outages occur.
+              </p>
+              <p>
+                Note: This technology processes data every 15 minutes. A treated street
+                status can take 15 to 45 minutes to appear on the map.
+              </p>
+            </div>
+          </details>
+
+          <!-- Notices alert (from notices data source) -->
+          <div
+            v-if="getPlowNotice(dataSourcesState)"
+            class="notice-alert"
+          >
+            <span class="notice-icon">⚠️</span>
+            <span v-html="getPlowNotice(dataSourcesState)"></span>
+          </div>
+
+          <!-- Deployment Status Banner -->
+          <div class="deployment-status">
+            <span v-if="hasActiveSnowEvent(dataSourcesState)">
+              <a
+                href="https://www.phila.gov/departments/department-of-streets/roadways/snow-events/#salting-and-plowing-operations"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ getDeploymentType(dataSourcesState) }}
+              </a>
+            </span>
+            <span v-else>
+              There is no active Snow Event.
+            </span>
+            <span class="deployment-status-icon">!</span>
+          </div>
+
+          <!-- Plow Deployment Legend (only shown during active event) -->
+          <PlowDeploymentLegend
+            :deployment-type="getDeploymentType(dataSourcesState)"
+          />
+
+          <!-- Additional Information box -->
+          <div class="info-box">
+            <h4>Additional Information</h4>
+            <p>
+              Visit <a href="https://www.phila.gov/departments/department-of-streets/roadways/snow-events/" target="_blank" rel="noopener">phila.gov</a> to learn more about snow events.
+            </p>
+          </div>
         </TopicAccordion>
 
         <!-- SweepPHL Topic -->
@@ -885,5 +1034,33 @@ function getPaveNotice(dataSourcesState: Record<string, { data: unknown }>): str
   font-size: 13px;
   line-height: 1.5;
   color: #555;
+}
+
+/* Deployment status banner (PlowPHL) */
+.deployment-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background-color: #fff8d8;
+  border-left: 5px solid #ffed97;
+  font-size: 14px;
+  font-weight: 550;
+  color: #4a4a4a;
+}
+
+.deployment-status a {
+  color: #4a4a4a;
+  text-decoration: underline;
+}
+
+.deployment-status a:hover {
+  color: #21498b;
+}
+
+.deployment-status-icon {
+  font-weight: bold;
+  font-size: 16px;
 }
 </style>
