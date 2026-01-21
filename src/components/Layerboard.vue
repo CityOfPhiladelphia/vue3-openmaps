@@ -22,6 +22,8 @@ import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-ma
 
 import { getLayerConfigs, clearCache } from '@/services/layerConfigService'
 import type { LayerConfig, TiledLayerConfig } from '@/types/layer'
+import type { DataSourceConfig } from '@/types/dataSource'
+import { useApiDataSources } from '@/composables/useApiDataSources'
 
 // ============================================================================
 // PROPS
@@ -52,6 +54,8 @@ const props = withDefaults(
     fetchMetadata?: boolean
     /** Tiled layer configurations (ESRI MapServer tiles separate from WebMap) */
     tiledLayers?: TiledLayerConfig[]
+    /** API data source configurations for fetching external data (notices, status, etc.) */
+    dataSources?: DataSourceConfig[]
   }>(),
   {
     themeColor: '#0f4d90',
@@ -61,6 +65,7 @@ const props = withDefaults(
     mapLabel: 'Map',
     fetchMetadata: false,
     tiledLayers: () => [],
+    dataSources: () => [],
   }
 )
 
@@ -136,6 +141,26 @@ function setTiledLayerOpacity(layerId: string, opacity: number) {
 }
 
 // ============================================================================
+// API DATA SOURCES
+// ============================================================================
+// Initialize data sources composable (only if configs provided)
+const dataSourcesComposable = props.dataSources.length > 0
+  ? useApiDataSources(props.dataSources)
+  : null
+
+// Expose data source state and methods
+const dataSourcesState = computed(() => dataSourcesComposable?.state.value ?? {})
+const dataSourcesLoading = computed(() => dataSourcesComposable?.isLoading.value ?? false)
+
+function getDataSourceData<T = unknown>(id: string): T | null {
+  return dataSourcesComposable?.getData<T>(id) ?? null
+}
+
+function refetchDataSource(id: string): Promise<void> {
+  return dataSourcesComposable?.refetch(id) ?? Promise.resolve()
+}
+
+// ============================================================================
 // PROVIDE STATE TO CHILD COMPONENTS
 // ============================================================================
 // These are provided so custom sidebar content can access layer state
@@ -156,6 +181,11 @@ provide('layerboard-tiled-opacities', tiledLayerOpacities)
 provide('layerboard-toggle-tiled', toggleTiledLayer)
 provide('layerboard-set-tiled-opacity', setTiledLayerOpacity)
 provide('layerboard-set-tiled-visible', setTiledLayerVisible)
+// Data source state
+provide('layerboard-data-sources-state', dataSourcesState)
+provide('layerboard-data-sources-loading', dataSourcesLoading)
+provide('layerboard-get-data-source', getDataSourceData)
+provide('layerboard-refetch-data-source', refetchDataSource)
 
 // ============================================================================
 // COMPUTED
@@ -363,6 +393,15 @@ defineExpose({
   setTiledLayerVisible,
   /** Set a tiled layer's opacity */
   setTiledLayerOpacity,
+  // Data source APIs
+  /** State of all data sources */
+  dataSourcesState,
+  /** Whether any data source is loading */
+  dataSourcesLoading,
+  /** Get data from a specific data source */
+  getDataSourceData,
+  /** Refetch a specific data source */
+  refetchDataSource,
 })
 
 // ============================================================================
@@ -414,7 +453,7 @@ onMounted(() => {
           :class="{ 'is-active': activePanel === 'sidebar' }"
           :style="sidebarStyle"
         >
-          <slot name="sidebar" :layers="layerList" :visible-layers="visibleLayers" :layer-opacities="layerOpacities" :loading-layers="loadingLayers" :layer-errors="layerErrors" :current-zoom="currentZoom" :toggle-layer="toggleLayer" :set-layer-visible="setLayerVisible" :set-layers-visible="setLayersVisible" :set-opacity="setLayerOpacity" :tiled-layers="tiledLayers" :visible-tiled-layers="visibleTiledLayers" :tiled-layer-opacities="tiledLayerOpacities" :toggle-tiled-layer="toggleTiledLayer" :set-tiled-layer-visible="setTiledLayerVisible" :set-tiled-layer-opacity="setTiledLayerOpacity">
+          <slot name="sidebar" :layers="layerList" :visible-layers="visibleLayers" :layer-opacities="layerOpacities" :loading-layers="loadingLayers" :layer-errors="layerErrors" :current-zoom="currentZoom" :toggle-layer="toggleLayer" :set-layer-visible="setLayerVisible" :set-layers-visible="setLayersVisible" :set-opacity="setLayerOpacity" :tiled-layers="tiledLayers" :visible-tiled-layers="visibleTiledLayers" :tiled-layer-opacities="tiledLayerOpacities" :toggle-tiled-layer="toggleTiledLayer" :set-tiled-layer-visible="setTiledLayerVisible" :set-tiled-layer-opacity="setTiledLayerOpacity" :data-sources-state="dataSourcesState" :data-sources-loading="dataSourcesLoading" :get-data-source="getDataSourceData" :refetch-data-source="refetchDataSource">
             <!-- Default: LayerPanel for flat layer list -->
             <LayerPanel
               v-if="showDefaultSidebar"

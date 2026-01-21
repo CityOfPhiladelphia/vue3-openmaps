@@ -5,7 +5,11 @@ export {
   useDataSource,
   useReactiveDataSource,
   type UseDataSourceReturn,
-  type DataSourceConfig,
+  type DataSourceConfig as LayerDataSourceConfig,
   type FetchOptions,
   type Bounds,
 } from './useDataSource'
+export {
+  useApiDataSources,
+  type UseApiDataSourcesReturn,
+} from './useApiDataSources'

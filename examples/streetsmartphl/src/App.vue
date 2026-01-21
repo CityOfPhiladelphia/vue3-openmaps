@@ -14,6 +14,7 @@ import LayerCheckboxSet from '@/components/LayerCheckboxSet.vue'
 import CollectionDayLegend from './components/CollectionDayLegend.vue'
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 import type { LayerConfig, LayerDisplayOptions, TiledLayerConfig } from '@/types/layer'
+import type { DataSourceConfig } from '@/types/dataSource'
 
 // ============================================================================
 // LAYER DISPLAY OPTIONS
@@ -120,6 +121,23 @@ const tiledLayers: TiledLayerConfig[] = [
   //   title: 'Treated Street Status',
   //   url: 'https://plowphl-services.phila.gov/arcweb/rest/services/Projects/TreatedStatus/MapServer',
   // },
+]
+
+// ============================================================================
+// DATA SOURCES CONFIGURATION
+// ============================================================================
+// External APIs for dynamic content (notices, trash status, etc.)
+const dataSources: DataSourceConfig[] = [
+  {
+    id: 'notices',
+    url: 'https://stsweb.phila.gov/StreetsCityWorks/api/Notice/getNotices',
+    type: 'http-get',
+  },
+  {
+    id: 'trashDay',
+    url: 'https://admin.phila.gov/wp-json/closures/v1/closure/',
+    type: 'http-get',
+  },
 ]
 
 // ============================================================================
@@ -256,6 +274,59 @@ function getLayersForTopic(
       return layer.config
     })
 }
+
+// ============================================================================
+// DATA SOURCE HELPERS FOR PICKUPPHL
+// ============================================================================
+
+// Interface for notices data
+interface Notice {
+  Type: string
+  Description: string
+}
+
+// Interface for trash day data
+interface TrashDayData {
+  status?: string
+}
+
+// Get pickup-specific notices from the notices data source
+function getPickupNotice(dataSourcesState: Record<string, { data: unknown }>): string | null {
+  const noticesData = dataSourcesState?.notices?.data as Notice[] | null
+  if (!noticesData || !Array.isArray(noticesData)) return null
+
+  const pickupNotices = noticesData.filter(
+    (n) => n.Type?.toLowerCase() === 'pickupphl'
+  )
+
+  if (pickupNotices.length > 0) {
+    return pickupNotices[0].Description
+  }
+  return null
+}
+
+// Get trash status message from trashDay data source
+function getTrashStatusMessage(dataSourcesState: Record<string, { data: unknown }>): string {
+  const trashData = dataSourcesState?.trashDay?.data as TrashDayData | null
+  if (trashData?.status) {
+    return trashData.status
+  }
+  return 'Loading collection status...'
+}
+
+// Get CSS class for trash status (normal vs warning)
+function getTrashStatusClass(dataSourcesState: Record<string, { data: unknown }>): string {
+  const message = getTrashStatusMessage(dataSourcesState)
+  const isOnSchedule = message === 'Trash and recycling collections are on schedule.'
+  return isOnSchedule ? 'trash-status--normal' : 'trash-status--warning'
+}
+
+// Get icon for trash status
+function getTrashStatusIcon(dataSourcesState: Record<string, { data: unknown }>): string {
+  const message = getTrashStatusMessage(dataSourcesState)
+  const isOnSchedule = message === 'Trash and recycling collections are on schedule.'
+  return isOnSchedule ? '✓' : '⚠️'
+}
 </script>
 
 <template>
@@ -268,11 +339,12 @@ function getLayersForTopic(
     sidebar-label="Topics"
     :show-default-sidebar="false"
     :tiled-layers="tiledLayers"
+    :data-sources="dataSources"
     :cyclomedia-config="cyclomediaConfig"
     :pictometry-credentials="pictometryCredentials"
   >
     <!-- Custom sidebar with topic accordions -->
-    <template #sidebar="{ layers, visibleLayers, layerOpacities, loadingLayers, layerErrors, currentZoom, toggleLayer, setLayersVisible, setTiledLayerVisible, setOpacity, visibleTiledLayers, toggleTiledLayer }">
+    <template #sidebar="{ layers, visibleLayers, layerOpacities, loadingLayers, layerErrors, currentZoom, toggleLayer, setLayersVisible, setTiledLayerVisible, setOpacity, visibleTiledLayers, toggleTiledLayer, dataSourcesState, getDataSource }">
       <!-- Initialize layer control functions -->
       <component :is="'div'" style="display:none" :ref="() => initLayerControls(setLayersVisible, setTiledLayerVisible)" />
       <div class="topics-container">
@@ -309,6 +381,24 @@ function getLayersForTopic(
               </p>
             </div>
           </details>
+
+          <!-- Notices alert (from notices data source) -->
+          <div
+            v-if="getPickupNotice(dataSourcesState)"
+            class="notice-alert"
+          >
+            <span class="notice-icon">⚠️</span>
+            <span v-html="getPickupNotice(dataSourcesState)"></span>
+          </div>
+
+          <!-- Trash Status (from trashDay data source) -->
+          <div class="trash-status" :class="getTrashStatusClass(dataSourcesState)">
+            <div class="trash-status-header">
+              <span class="trash-status-icon">{{ getTrashStatusIcon(dataSourcesState) }}</span>
+              <strong>Trash and recycling</strong>
+            </div>
+            <div class="trash-status-message" v-html="getTrashStatusMessage(dataSourcesState)"></div>
+          </div>
 
           <!-- Collection Day tiled layer checkbox + legend -->
           <CollectionDayLegend
@@ -536,5 +626,77 @@ function getLayersForTopic(
 
 .info-box a:hover {
   color: #21498b;
+}
+
+/* Notice alert */
+.notice-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #856404;
+}
+
+.notice-icon {
+  flex-shrink: 0;
+}
+
+/* Trash status */
+.trash-status {
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.trash-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.trash-status-icon {
+  font-size: 18px;
+}
+
+.trash-status-message {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Normal status (on schedule) */
+.trash-status--normal .trash-status-header {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.trash-status--normal .trash-status-icon {
+  color: #28a745;
+}
+
+.trash-status--normal .trash-status-message {
+  background-color: #f0f0f0;
+}
+
+/* Warning status (not on schedule) */
+.trash-status--warning .trash-status-header {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.trash-status--warning .trash-status-icon {
+  color: #dc3545;
+}
+
+.trash-status--warning .trash-status-message {
+  background-color: #f0f0f0;
 }
 </style>

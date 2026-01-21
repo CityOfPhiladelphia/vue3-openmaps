@@ -2129,19 +2129,19 @@ Implement support for ESRI tiled map layers (MapServer tiles) that are separate 
 
 Implement support for fetching external data from APIs. This data is used by custom topic components to display status, notices, and conditionally show/hide layers.
 
-**DataSources Service (src/services/dataSourceService.ts):**
-- [ ] Create `DataSourceConfig` interface with `id`, `url`, `type` ('http' | 'esri'), `options`
-- [ ] Create `useDataSources()` composable for fetching and caching data
-- [ ] Implement HTTP GET fetcher for REST APIs
-- [ ] Implement ESRI FeatureServer fetcher for ArcGIS services
-- [ ] Add loading/error state tracking per data source
-- [ ] Add auto-refresh/polling capability for real-time data
+**DataSources Service (src/composables/useApiDataSources.ts):**
+- [x] Create `DataSourceConfig` interface with `id`, `url`, `type` ('http-get' | 'http-post' | 'esri'), `options`
+- [x] Create `useApiDataSources()` composable for fetching and caching data
+- [x] Implement HTTP GET fetcher for REST APIs
+- [x] Implement ESRI FeatureServer fetcher for ArcGIS services
+- [x] Add loading/error state tracking per data source
+- [x] Add auto-refresh/polling capability for real-time data
 
 **DataSources Integration with Layerboard:**
-- [ ] Add `dataSources` prop to Layerboard component for registering data sources
-- [ ] Fetch data sources on mount (or when topic becomes active)
-- [ ] Expose data source state via slot props for custom topic components
-- [ ] Provide `refetchDataSource(id)` method for manual refresh
+- [x] Add `dataSources` prop to Layerboard component for registering data sources
+- [x] Fetch data sources on mount (automatic via composable)
+- [x] Expose data source state via slot props for custom topic components
+- [x] Provide `refetchDataSource(id)` method for manual refresh
 
 **Original StreetSmartPHL DataSources to Support:**
 | ID | URL | Type | Used By |
@@ -2187,18 +2187,18 @@ The `collectionDay` tiled layer at `https://tiles.arcgis.com/tiles/fLeGjb7u4uXqe
 - [ ] Secondary day (red) = Trash Only collection day (for twice-a-week areas)
 
 **DataSources:**
-- [ ] Fetch `notices` data source, filter for type "pickupphl", display alerts
-- [ ] Fetch `trashDay` data source, display collection status in `TrashStatus` component
+- [x] Fetch `notices` data source, filter for type "pickupphl", display alerts
+- [x] Fetch `trashDay` data source, display collection status in TrashStatus section
 
 **Custom Components:**
-- [ ] Create `TrashStatus.vue` - displays current trash/recycling collection status
+- [x] Trash status display (inline in App.vue, not separate component) - displays current trash/recycling collection status
 - [x] Create `CollectionDayLegend.vue` - checkbox + day-of-week color legend
 
 **Topic UI Content (matching original pickup.js components array):**
 - [x] Add intro paragraph: "See where trash and recycling trucks have visited today, and view where trash and recycling are collected each day of the week."
 - [x] Add "Read disclaimer" popover link with GPS technology disclaimer text
-- [ ] Add dynamic notices alert paragraph (requires notices data source)
-- [ ] Add TrashStatus component showing collection status (requires trashDay data source)
+- [x] Add dynamic notices alert paragraph (from notices data source)
+- [x] Add TrashStatus section showing collection status (from trashDay data source)
 - [x] Add "Additional Information" info box with links to phila.gov/trashday and 311
 
 ##### 8.7.7.5 PermitPHL Topic
