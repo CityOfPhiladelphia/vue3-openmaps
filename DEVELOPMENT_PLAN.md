@@ -2074,6 +2074,8 @@ Before implementing individual topics, ensure the generic topic infrastructure w
 **Basic Topic Infrastructure:**
 - [x] Ensure only one topic can be open at a time (expanding one closes the other)
 - [x] Update App.vue layer IDs to match WebMap transformer output (slugified IDs)
+- [x] No topic should be open when the app loads (expandedTopic starts as null)
+- [x] When a topic opens, auto-activate its default tiled layers (e.g., collectionDay for PickupPHL)
 - [ ] Ensure layer visibility toggles work within topics (checkboxes control map layers)
 - [ ] Verify layer legends display correctly within topics
 - [ ] Test layer opacity controls work within topics
@@ -2087,7 +2089,8 @@ Before implementing individual topics, ensure the generic topic infrastructure w
 - [x] Support `layerNameChange` to display different label than layer title
 - [x] Support `shouldShowSlider: false` to hide opacity slider per layer
 - [x] Support `shouldShowLegendBox: false` to hide legend per layer
-- [x] Support `defaultTopicLayers` for auto-activating layers when topic opens (implemented via `setLayersVisible` slot prop)
+- [x] Support `defaultTopicLayers` for auto-activating feature layers when topic opens (implemented via `setLayersVisible` slot prop)
+- [x] Support `defaultTiledLayersMap` for auto-activating tiled layers when topic opens (implemented via `setTiledLayerVisible` slot prop)
 
 **Known Issues / Future Work:**
 - [ ] CORS errors for `plowphl-services.phila.gov` - server needs CORS headers enabled, or add proxy support

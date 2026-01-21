@@ -151,51 +151,83 @@ const defaultTopicLayersMap: Record<string, string[]> = {
 }
 
 // ============================================================================
+// DEFAULT TILED LAYERS MAP
+// ============================================================================
+// Maps topic ID to tiled layers that auto-activate when that topic opens
+const defaultTiledLayersMap: Record<string, string[]> = {
+  pickup: ['collectionDay'],
+  // Other topics can have default tiled layers added here as needed
+}
+
+// ============================================================================
 // TOPIC ACCORDION STATE
 // ============================================================================
-// Only one topic can be open at a time
-const expandedTopic = ref<string | null>('pickup')
+// No topic is open by default - user must click to expand
+const expandedTopic = ref<string | null>(null)
 
-// Reference to setLayersVisible function from Layerboard slot
+// References to layer control functions from Layerboard slot
 let setLayersVisibleFn: ((layerIds: string[], visible: boolean) => void) | null = null
-let hasInitializedDefaultLayers = false
+let setTiledLayerVisibleFn: ((layerId: string, visible: boolean) => void) | null = null
 
-function initSetLayersVisible(fn: (layerIds: string[], visible: boolean) => void) {
-  setLayersVisibleFn = fn
-  // If pickup topic is already expanded on load, activate its default layers (once)
-  if (!hasInitializedDefaultLayers && expandedTopic.value === 'pickup' && pickupDefaultLayers.length > 0) {
-    hasInitializedDefaultLayers = true
-    fn(pickupDefaultLayers, true)
-  }
+function initLayerControls(
+  setLayersVisible: (layerIds: string[], visible: boolean) => void,
+  setTiledLayerVisible: (layerId: string, visible: boolean) => void
+) {
+  setLayersVisibleFn = setLayersVisible
+  setTiledLayerVisibleFn = setTiledLayerVisible
 }
 
 function onTopicToggle(topicId: string, expanded: boolean) {
   // Get previous topic's default layers to turn off
   const previousTopic = expandedTopic.value
   const previousDefaultLayers = previousTopic ? defaultTopicLayersMap[previousTopic] || [] : []
+  const previousDefaultTiledLayers = previousTopic ? defaultTiledLayersMap[previousTopic] || [] : []
 
   if (expanded) {
     // Opening a topic closes any other open topic
     expandedTopic.value = topicId
 
-    // Turn off previous topic's default layers
+    // Turn off previous topic's default layers (feature layers)
     if (setLayersVisibleFn && previousDefaultLayers.length > 0 && previousTopic !== topicId) {
       setLayersVisibleFn(previousDefaultLayers, false)
     }
 
-    // Turn on this topic's default layers
+    // Turn off previous topic's default tiled layers
+    if (setTiledLayerVisibleFn && previousDefaultTiledLayers.length > 0 && previousTopic !== topicId) {
+      for (const tiledLayerId of previousDefaultTiledLayers) {
+        setTiledLayerVisibleFn(tiledLayerId, false)
+      }
+    }
+
+    // Turn on this topic's default layers (feature layers)
     const defaultLayers = defaultTopicLayersMap[topicId] || []
     if (setLayersVisibleFn && defaultLayers.length > 0) {
       setLayersVisibleFn(defaultLayers, true)
+    }
+
+    // Turn on this topic's default tiled layers
+    const defaultTiledLayers = defaultTiledLayersMap[topicId] || []
+    if (setTiledLayerVisibleFn && defaultTiledLayers.length > 0) {
+      for (const tiledLayerId of defaultTiledLayers) {
+        setTiledLayerVisibleFn(tiledLayerId, true)
+      }
     }
   } else {
     // Closing the current topic
     expandedTopic.value = null
 
-    // Turn off this topic's default layers
+    // Turn off this topic's default layers (feature layers)
     const defaultLayers = defaultTopicLayersMap[topicId] || []
     if (setLayersVisibleFn && defaultLayers.length > 0) {
       setLayersVisibleFn(defaultLayers, false)
+    }
+
+    // Turn off this topic's default tiled layers
+    const defaultTiledLayers = defaultTiledLayersMap[topicId] || []
+    if (setTiledLayerVisibleFn && defaultTiledLayers.length > 0) {
+      for (const tiledLayerId of defaultTiledLayers) {
+        setTiledLayerVisibleFn(tiledLayerId, false)
+      }
     }
   }
 }
@@ -240,9 +272,9 @@ function getLayersForTopic(
     :pictometry-credentials="pictometryCredentials"
   >
     <!-- Custom sidebar with topic accordions -->
-    <template #sidebar="{ layers, visibleLayers, layerOpacities, loadingLayers, layerErrors, currentZoom, toggleLayer, setLayersVisible, setOpacity, visibleTiledLayers, toggleTiledLayer }">
-      <!-- Initialize setLayersVisible function and activate default layers for initial topic -->
-      <component :is="'div'" style="display:none" :ref="() => initSetLayersVisible(setLayersVisible)" />
+    <template #sidebar="{ layers, visibleLayers, layerOpacities, loadingLayers, layerErrors, currentZoom, toggleLayer, setLayersVisible, setTiledLayerVisible, setOpacity, visibleTiledLayers, toggleTiledLayer }">
+      <!-- Initialize layer control functions -->
+      <component :is="'div'" style="display:none" :ref="() => initLayerControls(setLayersVisible, setTiledLayerVisible)" />
       <div class="topics-container">
         <!-- PickupPHL Topic -->
         <TopicAccordion
