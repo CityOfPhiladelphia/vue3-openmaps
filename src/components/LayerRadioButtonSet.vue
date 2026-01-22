@@ -237,8 +237,8 @@ function onOpacityChange(layerId: string, event: Event) {
 }
 
 .layer-radio input[type="radio"] {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
   flex-shrink: 0;
   margin: 0;

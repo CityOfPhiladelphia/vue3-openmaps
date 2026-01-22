@@ -16,6 +16,7 @@ import CollectionDayLegend from './components/CollectionDayLegend.vue'
 import PlowDeploymentLegend from './components/PlowDeploymentLegend.vue'
 import SweepLegend from './components/SweepLegend.vue'
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
+import { PhilaLink } from "@phila/phila-ui-link"
 import type { LayerConfig, LayerDisplayOptions, TiledLayerConfig } from '@/types/layer'
 import type { DataSourceConfig } from '@/types/dataSource'
 
@@ -565,10 +566,12 @@ function getPlowTiledLayersForDeployment(deploymentType: string): string[] {
     title="StreetSmartPHL"
     subtitle="Streets Department Interactive Map"
     :web-map-id="WEBMAP_ID"
-    theme-color="#2176d2"
+    theme-color="#0f4d90"
     sidebar-width="30%"
     sidebar-label="Topics"
     :show-default-sidebar="false"
+    :initial-zoom="10"
+    :initial-center="[-75.16, 40.0]"
     :tiled-layers="tiledLayers"
     :data-sources="dataSources"
     :cyclomedia-config="cyclomediaConfig"
@@ -920,7 +923,12 @@ function getPlowTiledLayersForDeployment(deploymentType: string): string[] {
 
     <!-- Custom footer -->
     <template #footer>
-      City of Philadelphia - Streets Department
+      <PhilaLink
+        text="Feedback"
+        href="https://phila.formstack.com/forms/streetsmartphl_feedback"
+        target="_blank"
+        variant="on-primary"
+      />
     </template>
   </Layerboard>
 </template>

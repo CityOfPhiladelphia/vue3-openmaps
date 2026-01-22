@@ -8,6 +8,7 @@
  */
 
 import Layerboard from '@/components/Layerboard.vue'
+import { PhilaLink } from "@phila/phila-ui-link"
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 
 // WebMap ID for OpenMaps
@@ -36,7 +37,17 @@ const pictometryCredentials: PictometryCredentials = {
     theme-color="#0f4d90"
     sidebar-width="30%"
     :fetch-metadata="true"
+    :initial-zoom="15"
     :cyclomedia-config="cyclomediaConfig"
     :pictometry-credentials="pictometryCredentials"
-  />
+  >
+    <template #footer>
+      <PhilaLink
+        text="Feedback"
+        href="https://phila.formstack.com/forms/openmaps_feedback"
+        target="_blank"
+        variant="on-primary"
+      />
+    </template>
+  </Layerboard>
 </template>

@@ -18,6 +18,8 @@ import "@phila/phila-ui-map-core/dist/assets/phila-ui-map-core.css"
 
 import MapPanel from './MapPanel.vue'
 import LayerPanel from './LayerPanel.vue'
+import { Icon } from "@phila/phila-ui-core"
+import { faCaretLeft, faCaretRight } from "@fortawesome/pro-solid-svg-icons"
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 
 import { getLayerConfigs, clearCache } from '@/services/layerConfigService'
@@ -76,6 +78,10 @@ const props = withDefaults(
     cyclomediaButtonPosition?: ControlPosition
     /** Position of Pictometry oblique imagery button */
     pictometryButtonPosition?: ControlPosition
+    /** Initial map zoom level */
+    initialZoom?: number
+    /** Initial map center [lng, lat] */
+    initialCenter?: [number, number]
   }>(),
   {
     themeColor: '#0f4d90',
@@ -231,7 +237,7 @@ const mobileToggleStyle = computed(() => ({
 }))
 
 const sidebarStyle = computed(() => ({
-  width: props.sidebarWidth,
+  width: sidebarCollapsed.value ? '0' : props.sidebarWidth,
 }))
 
 // ============================================================================
@@ -399,6 +405,15 @@ function togglePanel() {
 }
 
 // ============================================================================
+// DESKTOP SIDEBAR COLLAPSE
+// ============================================================================
+const sidebarCollapsed = ref(false)
+
+function toggleSidebarCollapse() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+// ============================================================================
 // EXPOSE API FOR PARENT COMPONENTS
 // ============================================================================
 defineExpose({
@@ -534,11 +549,28 @@ onMounted(() => {
             :draw-control-position="drawControlPosition"
             :cyclomedia-button-position="cyclomediaButtonPosition"
             :pictometry-button-position="pictometryButtonPosition"
+            :initial-zoom="initialZoom"
+            :initial-center="initialCenter"
             @zoom="onZoomChange"
             @layer-loading="setLayerLoading"
             @layer-error="setLayerError"
           />
         </div>
+
+        <!-- Desktop sidebar collapse toggle -->
+        <button
+          class="layerboard-sidebar-toggle"
+          :class="{ 'is-collapsed': sidebarCollapsed }"
+          :style="{ left: sidebarCollapsed ? '0' : props.sidebarWidth }"
+          @click="toggleSidebarCollapse"
+          aria-label="Toggle sidebar"
+        >
+          <Icon
+            :icon-definition="sidebarCollapsed ? faCaretRight : faCaretLeft"
+            size="medium"
+            decorative
+          />
+        </button>
       </template>
     </div>
 
@@ -591,8 +623,8 @@ html, body {
 <style>
 /* Override the layerboard reset for popup navigation */
 .popup-navigation-header {
-  padding: 20px 12px 8px 12px !important;
-  margin: -10px -10px 10px -10px !important;
+  padding: 8px 12px !important;
+  margin: -15px -15px 10px -15px !important;
 }
 
 .popup-layer-name {
@@ -614,7 +646,7 @@ html, body {
 
 .popup-title {
   margin: 0 0 8px 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #0f4d90;
 }
@@ -626,7 +658,7 @@ html, body {
 
 .popup-table th,
 .popup-table td {
-  padding: 4px 8px;
+  padding: 4px 8px 4px 0;
   text-align: left;
   border-bottom: 1px solid #eee;
 }
@@ -699,6 +731,7 @@ html, body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 /* Sidebar */
@@ -721,6 +754,9 @@ html, body {
   padding: 10px 20px;
   flex-shrink: 0;
   font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Mobile toggle button - hidden on desktop */
@@ -743,6 +779,36 @@ html, body {
 
 .layerboard-mobile-toggle:hover {
   filter: brightness(0.9);
+}
+
+/* Desktop sidebar collapse toggle - visible on desktop only */
+.layerboard-sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
+}
+
+.layerboard-sidebar-toggle:hover {
+  background-color: #f0f0f0;
+}
+
+/* Sidebar transition for smooth collapse */
+.layerboard-sidebar {
+  transition: width 0.3s ease;
+  overflow: hidden;
 }
 
 /* Mobile responsive styles */
@@ -781,6 +847,10 @@ html, body {
 
   .layerboard-mobile-toggle {
     display: block;
+  }
+
+  .layerboard-sidebar-toggle {
+    display: none;
   }
 }
 

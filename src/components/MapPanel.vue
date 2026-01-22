@@ -49,6 +49,8 @@ const props = withDefaults(
     drawControlPosition?: ControlPosition | null;
     cyclomediaButtonPosition?: ControlPosition;
     pictometryButtonPosition?: ControlPosition;
+    initialZoom?: number;
+    initialCenter?: [number, number];
   }>(),
   {
     basemapControlPosition: 'top-right',
@@ -1005,6 +1007,8 @@ watch(currentFeatureIndex, () => {
   <div class="map-panel">
     <MapComponent
       ref="mapRef"
+      :zoom="props.initialZoom"
+      :center="props.initialCenter"
       :navigation-controls="{ position: props.navigationControlPosition }"
       :geolocation-control="{ position: props.geolocationControlPosition }"
       :basemap-change-controls="{ toggle: true, dropdown: true, position: props.basemapControlPosition }"

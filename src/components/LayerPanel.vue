@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { LayerConfig } from "@/types/layer";
+import { TextField } from "@phila/phila-ui-text-field";
+import { Icon } from "@phila/phila-ui-core";
+import { faCircleInfo } from "@fortawesome/pro-solid-svg-icons";
 
 // Props with configuration options
 const props = withDefaults(
@@ -108,10 +111,11 @@ function isLayerAvailableAtZoom(config: LayerConfig): boolean {
   return true;
 }
 
-function onSearchInput(event: Event) {
-  const input = event.target as HTMLInputElement;
-  emit("updateSearch", input.value);
-}
+// Computed for v-model binding with TextField
+const searchValue = computed({
+  get: () => props.searchQuery,
+  set: (value: string) => emit("updateSearch", value),
+});
 
 function onToggleLayer(layerId: string) {
   emit("toggleLayer", layerId);
@@ -128,12 +132,10 @@ function onOpacityChange(layerId: string, event: Event) {
   <aside class="layer-panel">
     <!-- Search box (configurable) -->
     <div v-if="showSearch" class="search-box">
-      <input
-        :value="searchQuery"
-        type="text"
+      <TextField
+        v-model="searchValue"
         :placeholder="searchPlaceholder"
-        class="search-input"
-        @input="onSearchInput"
+        class-name="layer-search-field"
       />
     </div>
 
@@ -169,21 +171,12 @@ function onOpacityChange(layerId: string, event: Event) {
             title="View metadata"
             @click.stop
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+            <Icon
+              :icon-definition="faCircleInfo"
+              size="small"
+              inline
+              decorative
+            />
           </a>
           <span
             v-else-if="anyLayerHasMetadata"
@@ -309,17 +302,12 @@ function onOpacityChange(layerId: string, event: Event) {
   flex-shrink: 0;
 }
 
-.search-input {
+.search-box :deep(.phila-input) {
   width: 100%;
-  padding: 8px 12px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #0f4d90;
+.search-box :deep(.phila-text-field) {
+  width: 100% !important;
 }
 
 /* Topics container for accordion mode */
@@ -354,16 +342,8 @@ function onOpacityChange(layerId: string, event: Event) {
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #0f4d90;
+  color: var(--Schemes-On-Surface, #000);
   flex-shrink: 0;
-}
-
-.metadata-link:hover {
-  color: #0d3d73;
-}
-
-.metadata-link svg {
-  display: block;
 }
 
 /* Placeholder to maintain alignment when layer has no metadata but others do */
