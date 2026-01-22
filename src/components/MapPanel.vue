@@ -1048,6 +1048,7 @@ watch(currentFeatureIndex, () => {
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :maxzoom="layer.maxZoom"
         :before-id="'highlight-circles'"
         @click="handleLayerClick"
       />
@@ -1060,6 +1061,7 @@ watch(currentFeatureIndex, () => {
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :maxzoom="layer.maxZoom"
         :before-id="'highlight-circles'"
         @click="handleLayerClick"
       />
@@ -1072,6 +1074,7 @@ watch(currentFeatureIndex, () => {
         :source="getSource(layer)"
         :paint="getOutlinePaint(layer)"
         :minzoom="layer.minZoom"
+        :maxzoom="layer.maxZoom"
         :before-id="'highlight-lines'"
         @click="handleLayerClick"
       />
@@ -1084,6 +1087,7 @@ watch(currentFeatureIndex, () => {
         :source="getSource(layer)"
         :paint="getDynamicPaint(layer)"
         :minzoom="layer.minZoom"
+        :maxzoom="layer.maxZoom"
         :before-id="'highlight-lines'"
         @click="handleLayerClick"
       />
