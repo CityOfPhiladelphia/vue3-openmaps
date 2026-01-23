@@ -2313,6 +2313,25 @@ Add props to Layerboard.vue for configuring map control positions.
 - Basemap, navigation, geolocation: bottom-left
 - Draw control: removed (null)
 
+#### 8.7.9 Modal System and Help Link
+
+Add support for app-defined modals (like Help/About) that can be triggered from the footer.
+
+**Framework (Layerboard.vue):**
+- [x] Add modal slot to Layerboard.vue for app-defined modal content
+- [x] Add modal state management (open/close)
+- [x] Add modal backdrop/overlay with dimming effect
+- [x] Add close button and click-outside-to-close behavior
+- [x] Add support for footer links that trigger modals (not just external links)
+- [x] Style modal container (centered, white background, rounded corners)
+
+**OpenMaps Example (examples/openmaps):**
+- [x] Create HelpModal.vue component (Vue 3 version of original ModalAbout.vue)
+- [x] Add "Help" link to footer slot (before Feedback link)
+- [x] Wire up Help link to show/hide the modal
+- [x] Include help content: filter layers, toggle layers, zoom-dependent layers, popups, search, street view, metadata links
+- [x] Style to match original (icons + descriptions grid layout)
+
 ---
 
 ### 8.8 Testing and Validation

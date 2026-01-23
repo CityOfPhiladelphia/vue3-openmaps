@@ -8,6 +8,7 @@
  */
 
 import Layerboard from '@/components/Layerboard.vue'
+import HelpModal from './components/HelpModal.vue'
 import { PhilaLink } from "@phila/phila-ui-link"
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 
@@ -41,7 +42,9 @@ const pictometryCredentials: PictometryCredentials = {
     :cyclomedia-config="cyclomediaConfig"
     :pictometry-credentials="pictometryCredentials"
   >
-    <template #footer>
+    <template #footer="{ openModal }">
+      <a href="#" class="footer-link" @click.prevent="openModal">Help</a>
+      <span class="footer-separator">|</span>
       <PhilaLink
         text="Feedback"
         href="https://phila.formstack.com/forms/openmaps_feedback"
@@ -49,5 +52,27 @@ const pictometryCredentials: PictometryCredentials = {
         variant="on-primary"
       />
     </template>
+
+    <template #modal>
+      <HelpModal />
+    </template>
   </Layerboard>
 </template>
+
+<style scoped>
+.footer-link {
+  color: white;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.footer-link:hover {
+  opacity: 0.8;
+}
+
+.footer-separator {
+  margin: 0 8px;
+  color: white;
+  opacity: 0.7;
+}
+</style>

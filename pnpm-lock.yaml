@@ -11,6 +11,9 @@ importers:
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.1.0
         version: 7.1.0
+      '@fortawesome/free-regular-svg-icons':
+        specifier: ^7.1.0
+        version: 7.1.0
       '@fortawesome/free-solid-svg-icons':
         specifier: ^7.1.0
         version: 7.1.0
@@ -27,8 +30,8 @@ importers:
         specifier: 1.0.0
         version: 1.0.0(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
       '@phila/phila-ui-map-core':
-        specifier: 0.0.2-beta.7
-        version: 0.0.2-beta.7(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/pro-solid-svg-icons@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
+        specifier: 0.0.2-beta.8
+        version: 0.0.2-beta.8(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/pro-solid-svg-icons@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
       '@phila/phila-ui-text-field':
         specifier: 1.0.5
         version: 1.0.5(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/pro-solid-svg-icons@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
@@ -631,6 +634,10 @@ packages:
     resolution: {integrity: sha512-fNxRUk1KhjSbnbuBxlWSnBLKLBNun52ZBTcs22H/xEEzM6Ap81ZFTQ4bZBxVQGQgVY0xugKGoRcCbaKjLQ3XZA==}
     engines: {node: '>=6'}
 
+  '@fortawesome/free-regular-svg-icons@7.1.0':
+    resolution: {integrity: sha512-0e2fdEyB4AR+e6kU4yxwA/MonnYcw/CsMEP9lH82ORFi9svA6/RhDyhxIv5mlJaldmaHLLYVTb+3iEr+PDSZuQ==}
+    engines: {node: '>=6'}
+
   '@fortawesome/free-solid-svg-icons@6.7.2':
     resolution: {integrity: sha512-GsBrnOzU8uj0LECDfD5zomZJIjrPhIlWU82AHwa2s40FKH+kcxQaBvBo3Z4TxyZHIyX8XTDxsyA33/Vx9eFuQA==}
     engines: {node: '>=6'}
@@ -770,8 +777,8 @@ packages:
   '@phila/phila-ui-map-core@0.0.2-beta.4':
     resolution: {integrity: sha512-tuq7KNlXctdmb18fxLI/mhIW+P+EdqYzxPZuZNmiLn11zBv1b6GOkat6Mh+J/jOFmJX5kw53mpa87CnWrTrmgA==}
 
-  '@phila/phila-ui-map-core@0.0.2-beta.7':
-    resolution: {integrity: sha512-r/B/FVhYnLWJFYbmvnWRWNcoDkQbcc3OvqVZxLnnUQUrFlV5pMjAi9r5yJrUBMoppsxm3aYqJBRCMql1gSRYAg==}
+  '@phila/phila-ui-map-core@0.0.2-beta.8':
+    resolution: {integrity: sha512-JZJ27ZKddab6+5GXhZ/JphwbU/qf8aQxVHmYaPzL2EDNsPjmnNFiRyspqHDP6X0CzQR7xgQE6A0QchDDFS7inQ==}
 
   '@phila/phila-ui-search@1.0.6-beta.2':
     resolution: {integrity: sha512-qshgJ5KPMjg+WDoYqeGC0T/z6IEwtuXFRE21usQ+SHbUMblfM590GbV2Uqa7pFMBcWgZnNVsLFm7M7EB3JbpTg==}
@@ -2292,6 +2299,10 @@ snapshots:
     dependencies:
       '@fortawesome/fontawesome-common-types': 7.1.0
 
+  '@fortawesome/free-regular-svg-icons@7.1.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.1.0
+
   '@fortawesome/free-solid-svg-icons@6.7.2':
     dependencies:
       '@fortawesome/fontawesome-common-types': 6.7.2
@@ -2540,7 +2551,7 @@ snapshots:
       - vue
       - vue-router
 
-  '@phila/phila-ui-map-core@0.0.2-beta.7(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/pro-solid-svg-icons@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))':
+  '@phila/phila-ui-map-core@0.0.2-beta.8(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/pro-solid-svg-icons@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@cyclomedia/streetsmart-api': 25.7.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@phila/phila-ui-core': 2.2.1-beta.0(@fortawesome/fontawesome-svg-core@7.1.0)(@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.1.0)(vue@3.5.27(typescript@5.9.3)))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))

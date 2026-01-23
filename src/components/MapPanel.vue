@@ -8,10 +8,12 @@ import {
   RasterLayer,
   MapPopup,
   DrawTool,
+  MapMarker,
 } from "@phila/phila-ui-map-core";
 import type {
   CyclomediaConfig,
   PictometryCredentials,
+  AisGeocodeResult,
 } from "@phila/phila-ui-map-core";
 import type { LngLatLike, CircleLayerSpecification, LineLayerSpecification } from "maplibre-gl";
 import bboxClip from "@turf/bbox-clip";
@@ -1001,6 +1003,23 @@ watch(currentFeatureIndex, () => {
     }
   }
 });
+
+// ============================================================================
+// SEARCH RESULT MARKER
+// ============================================================================
+// Displays a marker pin at the searched address location.
+// The marker moves (not accumulates) when a new search is performed.
+
+const searchMarkerLngLat = ref<[number, number] | null>(null);
+
+/**
+ * Handle search result from MapSearchControl.
+ * Updates the search marker to show the searched location.
+ */
+function handleSearchResult(result: AisGeocodeResult) {
+  const [lng, lat] = result.geometry.coordinates;
+  searchMarkerLngLat.value = [lng, lat];
+}
 </script>
 
 <template>
@@ -1025,6 +1044,7 @@ watch(currentFeatureIndex, () => {
       @click="closePopup"
       @moveend="onMoveEnd"
       @load="onMapLoad"
+      @search-result="handleSearchResult"
     >
       <!-- Draw Tool - only render if position is not null -->
       <DrawTool v-if="props.drawControlPosition !== null" :position="props.drawControlPosition" />
@@ -1105,6 +1125,12 @@ watch(currentFeatureIndex, () => {
         id="highlight-lines"
         :source="{ type: 'geojson', data: highlightLinesSource }"
         :paint="highlightLinesPaint"
+      />
+
+      <!-- Search Result Marker - Shows a pin at the searched address -->
+      <MapMarker
+        :lng-lat="searchMarkerLngLat"
+        color="#2176d2"
       />
 
       <!-- Popup -->

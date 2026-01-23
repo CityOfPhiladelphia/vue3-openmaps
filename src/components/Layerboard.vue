@@ -19,7 +19,7 @@ import "@phila/phila-ui-map-core/dist/assets/phila-ui-map-core.css"
 import MapPanel from './MapPanel.vue'
 import LayerPanel from './LayerPanel.vue'
 import { Icon } from "@phila/phila-ui-core"
-import { faCaretLeft, faCaretRight } from "@fortawesome/pro-solid-svg-icons"
+import { faCaretLeft, faCaretRight, faXmark } from "@fortawesome/pro-solid-svg-icons"
 import type { CyclomediaConfig, PictometryCredentials } from "@phila/phila-ui-map-core"
 
 import { getLayerConfigs, clearCache } from '@/services/layerConfigService'
@@ -414,6 +414,31 @@ function toggleSidebarCollapse() {
 }
 
 // ============================================================================
+// MODAL SYSTEM
+// ============================================================================
+const isModalOpen = ref(false)
+
+function openModal() {
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+}
+
+function handleModalBackdropClick(event: MouseEvent) {
+  // Only close if clicking the backdrop itself, not the modal content
+  if ((event.target as HTMLElement).classList.contains('layerboard-modal-backdrop')) {
+    closeModal()
+  }
+}
+
+// Provide modal functions so footer slot can trigger modals
+provide('layerboard-open-modal', openModal)
+provide('layerboard-close-modal', closeModal)
+provide('layerboard-is-modal-open', readonly(isModalOpen))
+
+// ============================================================================
 // EXPOSE API FOR PARENT COMPONENTS
 // ============================================================================
 defineExpose({
@@ -461,6 +486,13 @@ defineExpose({
   getDataSourceData,
   /** Refetch a specific data source */
   refetchDataSource,
+  // Modal APIs
+  /** Whether the modal is currently open */
+  isModalOpen,
+  /** Open the modal */
+  openModal,
+  /** Close the modal */
+  closeModal,
 })
 
 // ============================================================================
@@ -586,10 +618,30 @@ onMounted(() => {
 
     <!-- Footer -->
     <footer class="layerboard-footer" :style="footerStyle">
-      <slot name="footer">
+      <slot name="footer" :open-modal="openModal" :close-modal="closeModal" :is-modal-open="isModalOpen">
         City of Philadelphia
       </slot>
     </footer>
+
+    <!-- Modal Overlay -->
+    <div
+      v-if="isModalOpen"
+      class="layerboard-modal-backdrop"
+      @click="handleModalBackdropClick"
+    >
+      <div class="layerboard-modal">
+        <button
+          class="layerboard-modal-close"
+          @click="closeModal"
+          aria-label="Close modal"
+        >
+          <Icon :icon-definition="faXmark" size="medium" decorative />
+        </button>
+        <slot name="modal" :close-modal="closeModal">
+          <!-- Default empty modal content -->
+        </slot>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -934,5 +986,60 @@ html, body {
 
 .layerboard-retry-button:hover {
   filter: brightness(0.9);
+}
+
+/* Modal styles */
+.layerboard-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.layerboard-modal {
+  position: relative;
+  background-color: white;
+  border-radius: 20px;
+  padding: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.layerboard-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #666;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.layerboard-modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* Mobile modal adjustments */
+@media (max-width: 768px) {
+  .layerboard-modal {
+    margin: 20px;
+    max-width: calc(100vw - 40px);
+  }
 }
 </style>
