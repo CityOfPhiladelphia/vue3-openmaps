@@ -611,11 +611,21 @@ html, body {
   overflow: hidden;
 }
 
-/* Reset for all children within layout */
-.layerboard-layout * {
+/* Reset for layerboard structural elements only */
+.layerboard-layout,
+.layerboard-layout .layerboard-header,
+.layerboard-layout .layerboard-main,
+.layerboard-layout .layerboard-sidebar,
+.layerboard-layout .layerboard-map,
+.layerboard-layout .layerboard-footer {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Ensure box-sizing is inherited for better consistency */
+.layerboard-layout *, .layerboard-layout *::before, .layerboard-layout *::after {
+  box-sizing: inherit;
 }
 </style>
 
