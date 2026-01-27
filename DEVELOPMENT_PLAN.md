@@ -2428,3 +2428,5 @@ features, use `resultOffset` and `resultRecordCount` parameters to paginate.
 ### Polygon Outlines
 MapLibre's `fill-outline-color` only supports 1px width. For thicker outlines, generate
 a separate `outlinePaint` property and render with an additional LineLayer.
+
+testing commit to this repo for making handoff snapshot
