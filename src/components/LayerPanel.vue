@@ -341,16 +341,18 @@ function onOpacityChange(layerId: string, event: Event) {
   align-items: center;
   justify-content: center;
   width: 24px;
-  height: 24px;
+  min-height: 24px;
   color: var(--Schemes-On-Surface, #000);
   flex-shrink: 0;
+  align-self: center;
 }
 
 /* Placeholder to maintain alignment when layer has no metadata but others do */
 .metadata-placeholder {
   width: 24px;
-  height: 24px;
+  min-height: 24px;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .layer-checkbox {
@@ -372,7 +374,8 @@ function onOpacityChange(layerId: string, event: Event) {
   height: 24px;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 0;
+  margin: 0;
+  align-self: center;
 }
 
 .layer-checkbox input[type="checkbox"]:disabled {
