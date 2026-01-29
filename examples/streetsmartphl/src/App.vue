@@ -198,28 +198,33 @@ const tiledLayers: TiledLayerConfig[] = [
     url: 'https://tiles.arcgis.com/tiles/fLeGjb7u4uXqeF9q/arcgis/rest/services/CollectionBoundaryPickupPHL__2026/MapServer',
   },
   // PlowPHL - Treated street status (time-based coloring)
+  // scaleBasedRendering: uses pre-rendered tiles when zoomed out, dynamic /export when zoomed in
   {
     id: 'plowTreatedStreetsStatus',
     title: 'Treated Street Status',
     url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/TreatedStatus/MapServer',
+    scaleBasedRendering: true,
   },
   // PlowPHL - Streets not treated by the city
   {
     id: 'plowNotTreatedStreets',
     title: 'Streets Not Treated by City',
     url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedCity/MapServer',
+    scaleBasedRendering: true,
   },
   // PlowPHL - Streets not treated during conditional deployment
   {
     id: 'plowConditional',
     title: 'Streets Not Treated (Conditional)',
     url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedCond/MapServer',
+    scaleBasedRendering: true,
   },
   // PlowPHL - Streets not treated during highways-only deployment
   {
     id: 'plowHighways',
     title: 'Streets Not Treated (Highways Only)',
     url: 'https://streetsgis.phila.gov/arcgis/rest/services/PlowPHL/NotTreatedHigh/MapServer',
+    scaleBasedRendering: true,
   },
 ]
 
