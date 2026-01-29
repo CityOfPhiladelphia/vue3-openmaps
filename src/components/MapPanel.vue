@@ -73,13 +73,43 @@ const emit = defineEmits<{
 }>();
 
 // ============================================================================
-// MAP REF & ZOOM TRACKING
+// MAP REF & ZOOM/SCALE TRACKING
 // ============================================================================
 const mapRef = ref<InstanceType<typeof MapComponent> | null>(null);
 const mapInstance = ref<any>(null); // Store the actual MapLibre map instance
 
+// Current map scale (calculated from zoom level and latitude)
+// Scale is needed for ArcGIS MapServer scale-dependent rendering
+const currentScale = ref<number>(0);
+
 function onZoomChange(zoom: number) {
   emit("zoom", zoom);
+  // Update scale when zoom changes
+  if (mapInstance.value) {
+    currentScale.value = calculateMapScale(mapInstance.value);
+  }
+}
+
+/**
+ * Calculate the map scale from zoom level and center latitude.
+ * This formula matches how ArcGIS calculates scale for Web Mercator projection.
+ * At the equator, zoom 0 = scale 559082264.028
+ * Scale = 559082264.028 / 2^zoom * cos(latitude)
+ */
+function calculateMapScale(map: any): number {
+  const zoom = map.getZoom();
+  const center = map.getCenter();
+  const latitude = center.lat;
+
+  // Constants for Web Mercator scale calculation
+  // At zoom 0, scale at equator is approximately 559,082,264
+  const SCALE_AT_ZOOM_0 = 559082264.028;
+
+  // Adjust for latitude (cos of latitude in radians)
+  const latRadians = (latitude * Math.PI) / 180;
+  const scale = SCALE_AT_ZOOM_0 * Math.cos(latRadians) / Math.pow(2, zoom);
+
+  return scale;
 }
 
 // ============================================================================
@@ -218,7 +248,7 @@ function onMoveEnd(data: { center: { lng: number; lat: number }; zoom: number; b
   fetchLayers(data.bounds);
 }
 
-// Handle map load event - get initial bounds and zoom
+// Handle map load event - get initial bounds, zoom, and scale
 function onMapLoad(map: any) {
   // Store the MapLibre map instance for later use
   mapInstance.value = map;
@@ -234,6 +264,9 @@ function onMapLoad(map: any) {
   // Emit the initial zoom level so layer availability is correctly calculated
   const zoom = map.getZoom();
   emit("zoom", zoom);
+
+  // Calculate the initial map scale for scale-based layer switching
+  currentScale.value = calculateMapScale(map);
 
   // Fetch any layers that are already visible
   fetchLayers(currentBounds.value);
@@ -337,11 +370,190 @@ function getTiledLayerSource(layer: TiledLayerConfig) {
   };
 }
 
-// Get visible tiled layers
+// ============================================================================
+// SCALE-BASED RENDERING FOR TILED LAYERS
+// ============================================================================
+// For layers with scaleBasedRendering enabled, we fetch scale thresholds
+// from the MapServer and switch between tiled (zoomed out) and dynamic
+// export rendering (zoomed in) based on the current map scale.
+
+// Store for MapServer layer metadata (scale thresholds)
+interface MapServerLayerInfo {
+  minScale: number; // Layer is visible when scale > maxScale (zoomed out)
+  maxScale: number; // Layer is visible when scale < minScale (zoomed in)
+}
+const mapServerMetadata = ref<Record<string, MapServerLayerInfo>>({});
+const metadataFetchedFor = ref<Set<string>>(new Set());
+
+/**
+ * Fetch layer definition metadata from MapServer REST API.
+ * This gets the minScale/maxScale thresholds that determine when
+ * to switch between tiled and dynamic rendering.
+ */
+async function fetchMapServerMetadata(layer: TiledLayerConfig): Promise<void> {
+  // Only fetch once per layer
+  if (metadataFetchedFor.value.has(layer.id)) return;
+  metadataFetchedFor.value.add(layer.id);
+
+  try {
+    const url = layer.url.replace(/\/$/, '');
+    const response = await fetch(`${url}?f=json`);
+    if (!response.ok) {
+      console.warn(`[MapPanel] Failed to fetch metadata for ${layer.id}: ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+
+    // Get the scale thresholds from the MapServer response
+    // The "layers" array contains sublayer definitions with scale info
+    // We use the service-level minScale/maxScale as the switch threshold
+    // because it represents the bounds of the tiled cache
+    let minScale = data.minScale || 0;
+    let maxScale = data.maxScale || 0;
+
+    // If service-level scales aren't set, look at the sublayers
+    // Find the innermost (most zoomed in) layer's maxScale as our threshold
+    if (data.layers && data.layers.length > 0) {
+      // Find the sublayer with the smallest maxScale (most zoomed in threshold)
+      // This is typically the "zoomed in" version of the layer
+      for (const sublayer of data.layers) {
+        if (sublayer.maxScale && sublayer.maxScale > 0) {
+          if (maxScale === 0 || sublayer.maxScale < maxScale) {
+            maxScale = sublayer.maxScale;
+          }
+        }
+      }
+    }
+
+    // If we still don't have a threshold, use a sensible default
+    // Scale ~72,000 corresponds to roughly zoom level 14
+    if (maxScale === 0) {
+      maxScale = 72000;
+    }
+
+    mapServerMetadata.value = {
+      ...mapServerMetadata.value,
+      [layer.id]: { minScale, maxScale },
+    };
+
+    console.log(`[MapPanel] Fetched scale metadata for ${layer.id}: minScale=${minScale}, maxScale=${maxScale}`);
+  } catch (err) {
+    console.warn(`[MapPanel] Error fetching metadata for ${layer.id}:`, err);
+  }
+}
+
+// Fetch metadata for all scale-based tiled layers on mount
+onMounted(() => {
+  if (props.tiledLayers) {
+    for (const layer of props.tiledLayers) {
+      if (layer.scaleBasedRendering) {
+        fetchMapServerMetadata(layer);
+      }
+    }
+  }
+});
+
+/**
+ * Determine if a scale-based layer should use tiled rendering (zoomed out)
+ * or dynamic rendering (zoomed in) based on current map scale.
+ *
+ * Returns: 'tiled' | 'dynamic' | 'none'
+ */
+function getScaleBasedRenderMode(layer: TiledLayerConfig): 'tiled' | 'dynamic' | 'none' {
+  if (!layer.scaleBasedRendering) {
+    return 'tiled'; // Non-scale-based layers always use tiled
+  }
+
+  const metadata = mapServerMetadata.value[layer.id];
+  if (!metadata) {
+    // Metadata not yet loaded - default to tiled until we know better
+    return 'tiled';
+  }
+
+  const scale = currentScale.value;
+  if (scale === 0) {
+    return 'tiled'; // Map not ready yet
+  }
+
+  // ArcGIS scale logic:
+  // - minScale is the smallest scale (most zoomed out) at which the layer is visible
+  // - maxScale is the largest scale (most zoomed in) at which the layer is visible
+  // - When scale > metadata.maxScale, we're zoomed out -> use tiles
+  // - When scale <= metadata.maxScale, we're zoomed in -> use dynamic
+  if (scale > metadata.maxScale) {
+    return 'tiled';
+  } else {
+    return 'dynamic';
+  }
+}
+
+/**
+ * Build the dynamic export URL for a MapServer layer.
+ * This uses the /export endpoint which renders imagery on-demand at any scale.
+ */
+function getDynamicExportSource(layer: TiledLayerConfig, bounds: Bounds): { type: 'raster'; tiles: string[]; tileSize: number; attribution: string } {
+  const url = layer.url.replace(/\/$/, '');
+
+  // Build the export URL with the current bounds
+  // We use 256x256 tiles to match the standard tile size
+  const bbox = `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`;
+  const exportUrl = `${url}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image`;
+
+  return {
+    type: 'raster' as const,
+    tiles: [exportUrl],
+    tileSize: 256,
+    attribution: layer.attribution || '',
+  };
+}
+
+// Get visible tiled layers that should use pre-rendered tiles
 const visibleTiledLayersList = computed(() => {
   if (!props.tiledLayers) return [];
-  return props.tiledLayers.filter(layer => isTiledLayerVisible(layer.id));
+  return props.tiledLayers.filter(layer => {
+    if (!isTiledLayerVisible(layer.id)) return false;
+
+    // For scale-based layers, only include if we should use tiled mode
+    if (layer.scaleBasedRendering) {
+      return getScaleBasedRenderMode(layer) === 'tiled';
+    }
+    return true;
+  });
 });
+
+// Get visible tiled layers that should use dynamic export rendering
+const visibleDynamicExportLayersList = computed(() => {
+  if (!props.tiledLayers) return [];
+  return props.tiledLayers.filter(layer => {
+    if (!isTiledLayerVisible(layer.id)) return false;
+
+    // Only include scale-based layers that should use dynamic mode
+    if (layer.scaleBasedRendering) {
+      return getScaleBasedRenderMode(layer) === 'dynamic';
+    }
+    return false;
+  });
+});
+
+/**
+ * Get the dynamic export source for a layer.
+ * This creates a raster source that uses the MapServer /export endpoint.
+ */
+function getDynamicExportLayerSource(layer: TiledLayerConfig) {
+  const url = layer.url.replace(/\/$/, '');
+
+  // Use MapLibre's built-in {bbox-epsg-3857} template for dynamic export
+  // This automatically substitutes the current tile bounds in Web Mercator
+  const exportUrl = `${url}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image`;
+
+  return {
+    type: 'raster' as const,
+    tiles: [exportUrl],
+    tileSize: 256,
+    attribution: layer.attribution || '',
+  };
+}
 
 // ============================================================================
 // GENERIC SOURCE & PAINT HELPERS
@@ -1093,7 +1305,7 @@ function handleSearchResult(result: AisGeocodeResult) {
       <!-- Draw Tool - only render if position is not null -->
       <DrawTool v-if="props.drawControlPosition !== null" :position="props.drawControlPosition" />
 
-      <!-- Tiled Layers (ESRI MapServer raster tiles) - render below vector layers -->
+      <!-- Tiled Layers (ESRI MapServer pre-rendered tiles) - for zoomed out views -->
       <RasterLayer
         v-for="tiledLayer in visibleTiledLayersList"
         :key="'tiled-' + tiledLayer.id"
@@ -1102,6 +1314,18 @@ function handleSearchResult(result: AisGeocodeResult) {
         :paint="{ 'raster-opacity': getTiledLayerOpacity(tiledLayer.id) }"
         :minzoom="tiledLayer.minZoom"
         :maxzoom="tiledLayer.maxZoom"
+      />
+
+      <!-- Dynamic Export Layers (ESRI MapServer /export endpoint) - for zoomed in views -->
+      <!-- These render on-demand at any scale, providing sharp imagery when zoomed in -->
+      <RasterLayer
+        v-for="dynamicLayer in visibleDynamicExportLayersList"
+        :key="'dynamic-' + dynamicLayer.id"
+        :id="'dynamic-' + dynamicLayer.id"
+        :source="getDynamicExportLayerSource(dynamicLayer)"
+        :paint="{ 'raster-opacity': getTiledLayerOpacity(dynamicLayer.id) }"
+        :minzoom="dynamicLayer.minZoom"
+        :maxzoom="dynamicLayer.maxZoom"
       />
 
       <!-- Circle Layers - positioned before highlight layers -->

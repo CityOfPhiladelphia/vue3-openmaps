@@ -117,4 +117,11 @@ export interface TiledLayerConfig {
   maxZoom?: number
   /** Initial opacity (0-1, default 1) */
   opacity?: number
+  /**
+   * Enable scale-based switching between tiled and dynamic rendering.
+   * When enabled, uses pre-rendered tiles when zoomed out (better performance)
+   * and switches to dynamic /export/ rendering when zoomed in (sharper imagery).
+   * The switch threshold is fetched from the MapServer's layer definitions.
+   */
+  scaleBasedRendering?: boolean
 }
