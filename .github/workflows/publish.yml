@@ -21,10 +21,13 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Configure FontAwesome registry
+        run: |
+          echo "@fortawesome:registry=https://npm.fontawesome.com/" >> .npmrc
+          echo "//npm.fontawesome.com/:_authToken=${{ secrets.FA_AUTH_TOKEN }}" >> .npmrc
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          VITE_FA_AUTH_TOKEN: ${{ secrets.FA_AUTH_TOKEN }}
 
       - name: Build
         run: pnpm build
