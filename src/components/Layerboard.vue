@@ -14,6 +14,8 @@
  */
 
 import { ref, computed, onMounted, provide, readonly } from 'vue'
+import "@phila/phila-ui-core/styles/tokens.css"
+import "@phila/phila-ui-core/styles/template-light.css"
 import "@phila/phila-ui-map-core/dist/assets/phila-ui-map-core.css"
 
 import MapPanel from './MapPanel.vue'
