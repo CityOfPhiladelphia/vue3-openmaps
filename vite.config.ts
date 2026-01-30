@@ -7,7 +7,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import dts from 'vite-plugin-dts'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     vueDevTools(),
@@ -17,6 +17,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
   build: {
     lib: {
@@ -45,4 +48,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
